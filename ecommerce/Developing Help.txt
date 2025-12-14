@@ -1,0 +1,106 @@
+Use mTLS (via mesh) for base trust + JWT (client credentials) for authorization.
+This is currently the strongest and most scalable pattern in production (used at Netflix, Uber, Amazon).
+
+
+
+\c product_db
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE SCHEMA IF NOT EXISTS product;
+
+-- shared trigger function
+CREATE OR REPLACE FUNCTION update_modified_at_version()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.modified_at := NOW();
+  NEW.row_version := COALESCE(OLD.row_version, 0) + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Categories
+CREATE TABLE IF NOT EXISTS product.categories (
+  category_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL UNIQUE,
+  description TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at  TIMESTAMPTZ,
+  is_deleted  BOOLEAN NOT NULL DEFAULT FALSE,
+  row_version BIGINT NOT NULL DEFAULT 1 CHECK (row_version >= 1)
+);
+CREATE INDEX IF NOT EXISTS ix_categories_name       ON product.categories (name);
+CREATE INDEX IF NOT EXISTS ix_categories_is_deleted ON product.categories (is_deleted);
+
+DROP TRIGGER IF EXISTS trg_categories_update ON product.categories;
+CREATE TRIGGER trg_categories_update
+BEFORE UPDATE ON product.categories
+FOR EACH ROW EXECUTE FUNCTION update_modified_at_version();
+
+-- Products
+CREATE TABLE IF NOT EXISTS product.products (
+  product_id     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name           VARCHAR(100)  NOT NULL,
+  description    TEXT,
+  price          NUMERIC(10,2) NOT NULL CHECK (price >= 0),
+  stock          INT           NOT NULL CHECK (stock >= 0),
+  category_id    BIGINT        NOT NULL REFERENCES product.categories(category_id) ON UPDATE CASCADE ON DELETE RESTRICT,
+  image_url      VARCHAR(255),
+  created_at     TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  modified_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  deleted_at     TIMESTAMPTZ,
+  is_deleted     BOOLEAN       NOT NULL DEFAULT FALSE,
+  correlation_id UUID,
+  service_origin VARCHAR(50),
+  row_version    BIGINT        NOT NULL DEFAULT 1 CHECK (row_version >= 1)
+);
+CREATE INDEX IF NOT EXISTS ix_products_category_id  ON product.products (category_id);
+CREATE INDEX IF NOT EXISTS ix_products_is_deleted   ON product.products (is_deleted);
+
+DROP TRIGGER IF EXISTS trg_products_update ON product.products;
+CREATE TRIGGER trg_products_update
+BEFORE UPDATE ON product.products
+FOR EACH ROW EXECUTE FUNCTION update_modified_at_version();
+
+-- Discount methods
+CREATE TABLE IF NOT EXISTS product.discount_methods (
+  discount_method_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  method_name        VARCHAR(50) NOT NULL UNIQUE, -- e.g., Percentage, FixedAmount, BOGO
+  description        TEXT,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  modified_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at         TIMESTAMPTZ,
+  is_deleted         BOOLEAN NOT NULL DEFAULT FALSE,
+  row_version        BIGINT  NOT NULL DEFAULT 1 CHECK (row_version >= 1)
+);
+CREATE INDEX IF NOT EXISTS ix_discount_methods_is_deleted ON product.discount_methods (is_deleted);
+
+DROP TRIGGER IF EXISTS trg_discount_methods_update ON product.discount_methods;
+CREATE TRIGGER trg_discount_methods_update
+BEFORE UPDATE ON product.discount_methods
+FOR EACH ROW EXECUTE FUNCTION update_modified_at_version();
+
+-- Product discounts
+CREATE TABLE IF NOT EXISTS product.product_discounts (
+  product_discount_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  product_id          BIGINT        NOT NULL REFERENCES product.products(product_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  discount_method_id  BIGINT        NOT NULL REFERENCES product.discount_methods(discount_method_id) ON UPDATE CASCADE ON DELETE RESTRICT,
+  discount_value      NUMERIC(10,2) NOT NULL CHECK (discount_value >= 0),
+  start_date          TIMESTAMPTZ   NOT NULL,
+  end_date            TIMESTAMPTZ   CHECK (end_date IS NULL OR end_date >= start_date),
+  active              BOOLEAN       NOT NULL DEFAULT TRUE,
+  created_at          TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  modified_at         TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  deleted_at          TIMESTAMPTZ,
+  is_deleted          BOOLEAN       NOT NULL DEFAULT FALSE,
+  row_version         BIGINT        NOT NULL DEFAULT 1 CHECK (row_version >= 1)
+);
+CREATE INDEX IF NOT EXISTS ix_product_discounts_product_id ON product.product_discounts (product_id);
+CREATE INDEX IF NOT EXISTS ix_product_discounts_active     ON product.product_discounts (active);
+CREATE INDEX IF NOT EXISTS ix_product_discounts_is_deleted ON product.product_discounts (is_deleted);
+
+DROP TRIGGER IF EXISTS trg_product_discounts_update ON product.product_discounts;
+CREATE TRIGGER trg_product_discounts_update
+BEFORE UPDATE ON product.product_discounts
+FOR EACH ROW EXECUTE FUNCTION update_modified_at_version();

@@ -1,0 +1,13 @@
+flowchart TD
+    A1[Web App] --> W[Web BFF]
+    A2[iOS App] --> M[Mobile BFF]
+    A3[Android App] --> M[Mobile BFF]
+
+    W --> B[Kong API Gateway]
+    M --> B[Kong API Gateway]
+
+    B --> P[Product Service]
+    B --> O[Order Service]
+    B --> Pay[Payment Service]
+    B --> S[Shipping Service]
+    B --> Inv[Inventory Service]

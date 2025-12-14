@@ -1,0 +1,6 @@
+flowchart LR
+    A[Service Command] --> B[Local TX: Update DB + Write Outbox Row]
+    B --> C[Commit]
+    C --> D[Outbox Poller / Debezium CDC]
+    D --> E[Publish Event to Kafka]
+    E --> F[Mark Outbox Row as SENT / delete]

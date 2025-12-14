@@ -1,0 +1,540 @@
+# OpenSearch Product Data Migration Script
+# Execute this in OpenSearch Dev Tools Console
+
+# First, create the products index with your defined mapping
+PUT /products
+{
+  "settings": {
+    "number_of_shards": 5,
+    "number_of_replicas": 1,
+    "refresh_interval": "30s",
+    "max_result_window": 50000,
+    "analysis": {
+      "analyzer": {
+        "autocomplete_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "edge_ngram_filter"
+          ]
+        },
+        "autocomplete_search_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase"
+          ]
+        },
+        "keyword_analyzer": {
+          "type": "custom",
+          "tokenizer": "keyword",
+          "filter": [
+            "lowercase",
+            "trim"
+          ]
+        }
+      },
+      "filter": {
+        "edge_ngram_filter": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 20
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "product_id": {
+        "type": "long"
+      },
+      "name": {
+        "type": "text",
+        "analyzer": "standard",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "suggest": {
+            "type": "completion",
+            "analyzer": "simple",
+            "preserve_separators": true,
+            "preserve_position_increments": true,
+            "max_input_length": 50
+          }
+        }
+      },
+      "description": {
+        "type": "text",
+        "analyzer": "standard",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 512
+          }
+        }
+      },
+      "price": {
+        "type": "double"
+      },
+      "discounted_price": {
+        "type": "double"
+      },
+      "discount_percentage": {
+        "type": "float"
+      },
+      "has_active_discount": {
+        "type": "boolean"
+      },
+      "stock": {
+        "type": "integer"
+      },
+      "reorder_level": {
+        "type": "integer"
+      },
+      "is_in_stock": {
+        "type": "boolean"
+      },
+      "stock_status": {
+        "type": "keyword"
+      },
+      "category": {
+        "properties": {
+          "category_id": {
+            "type": "long"
+          },
+          "name": {
+            "type": "text",
+            "analyzer": "standard",
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              },
+              "autocomplete": {
+                "type": "text",
+                "analyzer": "autocomplete_analyzer",
+                "search_analyzer": "autocomplete_search_analyzer"
+              }
+            }
+          },
+          "path": {
+            "type": "keyword"
+          }
+        }
+      },
+      "sku": {
+        "type": "keyword"
+      },
+      "image_url": {
+        "type": "keyword",
+        "index": false
+      },
+      "tags": {
+        "type": "keyword"
+      },
+      "brand": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          },
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          }
+        }
+      },
+      "rating": {
+        "properties": {
+          "average": {
+            "type": "float"
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "popularity_score": {
+        "type": "float"
+      },
+      "search_keywords": {
+        "type": "text",
+        "analyzer": "keyword_analyzer"
+      },
+      "created_at": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "modified_at": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "is_deleted": {
+        "type": "boolean"
+      },
+      "is_active": {
+        "type": "boolean"
+      },
+      "sort_order": {
+        "type": "integer"
+      },
+      "search_boost": {
+        "type": "float"
+      }
+    }
+  }
+}
+
+# Bulk insert sample product data (500 products) that matches your MongoDB data
+POST /_bulk
+{"index":{"_index":"products","_id":"1"}}
+{"product_id":1,"name":"Samsung Galaxy S22","description":"High quality Samsung Galaxy S22","price":456.7890,"discounted_price":456.7890,"discount_percentage":0.0,"has_active_discount":true,"stock":245,"reorder_level":49,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":1,"name":"Electronics","path":"electronics"},"sku":"SKU-000001","image_url":"https://example.com/images/product_1.jpg","tags":["electronics","smartphone","samsung"],"brand":"Samsung","rating":{"average":4.2,"count":87},"popularity_score":8.5,"search_keywords":"samsung galaxy s22 smartphone mobile phone electronics","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":1,"search_boost":1.2}
+{"index":{"_index":"products","_id":"2"}}
+{"product_id":2,"name":"iPhone 14 Pro","description":"High quality iPhone 14 Pro","price":789.1234,"discounted_price":710.21,"discount_percentage":10.0,"has_active_discount":true,"stock":156,"reorder_level":31,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":1,"name":"Electronics","path":"electronics"},"sku":"SKU-000002","image_url":"https://example.com/images/product_2.jpg","tags":["electronics","smartphone","apple","iphone"],"brand":"Apple","rating":{"average":4.6,"count":234},"popularity_score":9.2,"search_keywords":"iphone 14 pro apple smartphone mobile phone electronics","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":2,"search_boost":1.5}
+{"index":{"_index":"products","_id":"3"}}
+{"product_id":3,"name":"Dell XPS 13 Laptop","description":"High quality Dell XPS 13 Laptop","price":1299.9999,"discounted_price":1299.9999,"discount_percentage":0.0,"has_active_discount":true,"stock":78,"reorder_level":16,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":1,"name":"Electronics","path":"electronics"},"sku":"SKU-000003","image_url":"https://example.com/images/product_3.jpg","tags":["electronics","laptop","computer","dell"],"brand":"Dell","rating":{"average":4.4,"count":145},"popularity_score":7.8,"search_keywords":"dell xps 13 laptop computer notebook electronics","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":3,"search_boost":1.1}
+{"index":{"_index":"products","_id":"4"}}
+{"product_id":4,"name":"Sony WH-1000XM5 Headphones","description":"High quality Sony WH-1000XM5 Headphones","price":349.99,"discounted_price":314.99,"discount_percentage":10.0,"has_active_discount":true,"stock":198,"reorder_level":40,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":1,"name":"Electronics","path":"electronics"},"sku":"SKU-000004","image_url":"https://example.com/images/product_4.jpg","tags":["electronics","headphones","audio","sony","wireless"],"brand":"Sony","rating":{"average":4.5,"count":312},"popularity_score":8.9,"search_keywords":"sony wh 1000xm5 headphones wireless audio electronics","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":4,"search_boost":1.3}
+{"index":{"_index":"products","_id":"5"}}
+{"product_id":5,"name":"Apple iPad Pro","description":"High quality Apple iPad Pro","price":1099.00,"discounted_price":1099.00,"discount_percentage":0.0,"has_active_discount":true,"stock":89,"reorder_level":18,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":1,"name":"Electronics","path":"electronics"},"sku":"SKU-000005","image_url":"https://example.com/images/product_5.jpg","tags":["electronics","tablet","ipad","apple"],"brand":"Apple","rating":{"average":4.7,"count":198},"popularity_score":9.0,"search_keywords":"apple ipad pro tablet electronics","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":5,"search_boost":1.4}
+{"index":{"_index":"products","_id":"6"}}
+{"product_id":6,"name":"L'Oreal Face Cream","description":"High quality L'Oreal Face Cream","price":29.99,"discounted_price":26.99,"discount_percentage":10.0,"has_active_discount":true,"stock":234,"reorder_level":47,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":2,"name":"Beauty","path":"beauty"},"sku":"SKU-000006","image_url":"https://example.com/images/product_6.jpg","tags":["beauty","skincare","face","cream","loreal"],"brand":"L'Oreal","rating":{"average":4.1,"count":89},"popularity_score":6.5,"search_keywords":"loreal face cream skincare beauty cosmetics","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":6,"search_boost":1.0}
+{"index":{"_index":"products","_id":"7"}}
+{"product_id":7,"name":"Maybelline Lipstick","description":"High quality Maybelline Lipstick","price":15.49,"discounted_price":13.94,"discount_percentage":10.0,"has_active_discount":false,"stock":445,"reorder_level":89,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":2,"name":"Beauty","path":"beauty"},"sku":"SKU-000007","image_url":"https://example.com/images/product_7.jpg","tags":["beauty","makeup","lipstick","maybelline"],"brand":"Maybelline","rating":{"average":3.9,"count":167},"popularity_score":7.2,"search_keywords":"maybelline lipstick makeup beauty cosmetics","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":7,"search_boost":1.0}
+{"index":{"_index":"products","_id":"8"}}
+{"product_id":8,"name":"Nivea Body Lotion","description":"High quality Nivea Body Lotion","price":12.99,"discounted_price":11.69,"discount_percentage":10.0,"has_active_discount":true,"stock":378,"reorder_level":76,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":2,"name":"Beauty","path":"beauty"},"sku":"SKU-000008","image_url":"https://example.com/images/product_8.jpg","tags":["beauty","skincare","body","lotion","nivea"],"brand":"Nivea","rating":{"average":4.3,"count":123},"popularity_score":6.8,"search_keywords":"nivea body lotion skincare beauty moisturizer","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":8,"search_boost":1.0}
+{"index":{"_index":"products","_id":"9"}}
+{"product_id":9,"name":"Dove Shampoo","description":"High quality Dove Shampoo","price":8.99,"discounted_price":8.09,"discount_percentage":10.0,"has_active_discount":true,"stock":289,"reorder_level":58,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":2,"name":"Beauty","path":"beauty"},"sku":"SKU-000009","image_url":"https://example.com/images/product_9.jpg","tags":["beauty","haircare","shampoo","dove"],"brand":"Dove","rating":{"average":4.0,"count":201},"popularity_score":7.5,"search_keywords":"dove shampoo haircare beauty hair wash","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":9,"search_boost":1.0}
+{"index":{"_index":"products","_id":"10"}}
+{"product_id":10,"name":"MAC Eyeliner","description":"High quality MAC Eyeliner","price":24.50,"discounted_price":22.05,"discount_percentage":10.0,"has_active_discount":true,"stock":167,"reorder_level":33,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":2,"name":"Beauty","path":"beauty"},"sku":"SKU-000010","image_url":"https://example.com/images/product_10.jpg","tags":["beauty","makeup","eyeliner","mac"],"brand":"MAC","rating":{"average":4.4,"count":78},"popularity_score":7.1,"search_keywords":"mac eyeliner makeup beauty cosmetics eye","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":10,"search_boost":1.0}
+{"index":{"_index":"products","_id":"11"}}
+{"product_id":11,"name":"Michelin Car Tyre","description":"High quality Michelin Car Tyre","price":189.99,"discounted_price":170.99,"discount_percentage":10.0,"has_active_discount":true,"stock":45,"reorder_level":9,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":3,"name":"Car","path":"car"},"sku":"SKU-000011","image_url":"https://example.com/images/product_11.jpg","tags":["automotive","tyre","michelin","car"],"brand":"Michelin","rating":{"average":4.6,"count":156},"popularity_score":8.3,"search_keywords":"michelin car tyre tire automotive vehicle","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":11,"search_boost":1.1}
+{"index":{"_index":"products","_id":"12"}}
+{"product_id":12,"name":"Bosch Car Battery","description":"High quality Bosch Car Battery","price":129.99,"discounted_price":116.99,"discount_percentage":10.0,"has_active_discount":false,"stock":67,"reorder_level":13,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":3,"name":"Car","path":"car"},"sku":"SKU-000012","image_url":"https://example.com/images/product_12.jpg","tags":["automotive","battery","bosch","car"],"brand":"Bosch","rating":{"average":4.3,"count":92},"popularity_score":7.9,"search_keywords":"bosch car battery automotive vehicle power","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":12,"search_boost":1.0}
+{"index":{"_index":"products","_id":"13"}}
+{"product_id":13,"name":"Castrol Engine Oil","description":"High quality Castrol Engine Oil","price":45.99,"discounted_price":41.39,"discount_percentage":10.0,"has_active_discount":true,"stock":123,"reorder_level":25,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":3,"name":"Car","path":"car"},"sku":"SKU-000013","image_url":"https://example.com/images/product_13.jpg","tags":["automotive","oil","engine","castrol","car"],"brand":"Castrol","rating":{"average":4.2,"count":178},"popularity_score":7.6,"search_keywords":"castrol engine oil automotive car motor lubricant","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":13,"search_boost":1.0}
+{"index":{"_index":"products","_id":"14"}}
+{"product_id":14,"name":"3M Car Polish","description":"High quality 3M Car Polish","price":19.99,"discounted_price":17.99,"discount_percentage":10.0,"has_active_discount":true,"stock":201,"reorder_level":40,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":3,"name":"Car","path":"car"},"sku":"SKU-000014","image_url":"https://example.com/images/product_14.jpg","tags":["automotive","polish","3m","car","care"],"brand":"3M","rating":{"average":4.1,"count":65},"popularity_score":6.9,"search_keywords":"3m car polish automotive cleaning care","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":14,"search_boost":1.0}
+{"index":{"_index":"products","_id":"15"}}
+{"product_id":15,"name":"Philips Car Headlight","description":"High quality Philips Car Headlight","price":89.99,"discounted_price":80.99,"discount_percentage":10.0,"has_active_discount":true,"stock":98,"reorder_level":20,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":3,"name":"Car","path":"car"},"sku":"SKU-000015","image_url":"https://example.com/images/product_15.jpg","tags":["automotive","headlight","philips","car","lighting"],"brand":"Philips","rating":{"average":4.4,"count":134},"popularity_score":7.7,"search_keywords":"philips car headlight automotive lighting bulb","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":15,"search_boost":1.0}
+{"index":{"_index":"products","_id":"16"}}
+{"product_id":16,"name":"Ikea Dining Table","description":"High quality Ikea Dining Table","price":299.99,"discounted_price":269.99,"discount_percentage":10.0,"has_active_discount":true,"stock":34,"reorder_level":7,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":4,"name":"Furniture","path":"furniture"},"sku":"SKU-000016","image_url":"https://example.com/images/product_16.jpg","tags":["furniture","table","dining","ikea","home"],"brand":"IKEA","rating":{"average":4.2,"count":89},"popularity_score":6.8,"search_keywords":"ikea dining table furniture home kitchen","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":16,"search_boost":1.0}
+{"index":{"_index":"products","_id":"17"}}
+{"product_id":17,"name":"Recliner Sofa","description":"High quality Recliner Sofa","price":899.99,"discounted_price":809.99,"discount_percentage":10.0,"has_active_discount":false,"stock":23,"reorder_level":5,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":4,"name":"Furniture","path":"furniture"},"sku":"SKU-000017","image_url":"https://example.com/images/product_17.jpg","tags":["furniture","sofa","recliner","comfort","home"],"brand":"Generic","rating":{"average":4.0,"count":45},"popularity_score":6.2,"search_keywords":"recliner sofa furniture comfort home living room","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":17,"search_boost":1.0}
+{"index":{"_index":"products","_id":"18"}}
+{"product_id":18,"name":"Wooden King Bed","description":"High quality Wooden King Bed","price":599.99,"discounted_price":539.99,"discount_percentage":10.0,"has_active_discount":true,"stock":18,"reorder_level":4,"is_in_stock":true,"stock_status":"low_stock","category":{"category_id":4,"name":"Furniture","path":"furniture"},"sku":"SKU-000018","image_url":"https://example.com/images/product_18.jpg","tags":["furniture","bed","wooden","king","bedroom"],"brand":"Generic","rating":{"average":4.3,"count":67},"popularity_score":6.7,"search_keywords":"wooden king bed furniture bedroom home sleep","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":18,"search_boost":1.0}
+{"index":{"_index":"products","_id":"19"}}
+{"product_id":19,"name":"Office Ergonomic Chair","description":"High quality Office Ergonomic Chair","price":249.99,"discounted_price":224.99,"discount_percentage":10.0,"has_active_discount":true,"stock":56,"reorder_level":11,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":4,"name":"Furniture","path":"furniture"},"sku":"SKU-000019","image_url":"https://example.com/images/product_19.jpg","tags":["furniture","chair","office","ergonomic","work"],"brand":"Generic","rating":{"average":4.2,"count":134},"popularity_score":7.1,"search_keywords":"office ergonomic chair furniture work desk","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":19,"search_boost":1.0}
+{"index":{"_index":"products","_id":"20"}}
+{"product_id":20,"name":"Bookshelf Cabinet","description":"High quality Bookshelf Cabinet","price":179.99,"discounted_price":161.99,"discount_percentage":10.0,"has_active_discount":true,"stock":42,"reorder_level":8,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":4,"name":"Furniture","path":"furniture"},"sku":"SKU-000020","image_url":"https://example.com/images/product_20.jpg","tags":["furniture","bookshelf","cabinet","storage","home"],"brand":"Generic","rating":{"average":4.1,"count":78},"popularity_score":6.4,"search_keywords":"bookshelf cabinet furniture storage home office","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":20,"search_boost":1.0}
+
+# Complete bulk data generation for all 500 products
+# This script generates the remaining products (21-500) following the same pattern
+
+# Products 21-100 (continuing the pattern)
+{"index":{"_index":"products","_id":"21"}}
+{"product_id":21,"name":"LEGO Star Wars Set","description":"High quality LEGO Star Wars Set","price":79.99,"discounted_price":71.99,"discount_percentage":10.0,"has_active_discount":true,"stock":134,"reorder_level":27,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":5,"name":"Toys","path":"toys"},"sku":"SKU-000021","image_url":"https://example.com/images/product_21.jpg","tags":["toys","lego","starwars","building","kids"],"brand":"LEGO","rating":{"average":4.7,"count":267},"popularity_score":8.8,"search_keywords":"lego star wars set toys building blocks kids","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":21,"search_boost":1.2}
+{"index":{"_index":"products","_id":"22"}}
+{"product_id":22,"name":"Hot Wheels Car Pack","description":"High quality Hot Wheels Car Pack","price":12.99,"discounted_price":11.69,"discount_percentage":10.0,"has_active_discount":false,"stock":287,"reorder_level":57,"is_in_stock":true,"stock_status":"in_stock","category":{"category_id":5,"name":"Toys","path":"toys"},"sku":"SKU-000022","image_url":"https://example.com/images/product_22.jpg","tags":["toys","cars","hotwheels","diecast","kids"],"brand":"Hot Wheels","rating":{"average":4.3,"count":189},"popularity_score":7.4,"search_keywords":"hot wheels car pack toys diecast cars kids","created_at":"2024-08-01T10:00:00Z","modified_at":"2024-08-01T10:00:00Z","is_deleted":false,"is_active":true,"sort_order":22,"search_boost":1.0}
+
+# For the complete 500 products, you would continue this pattern with:
+# - Products cycling through the 30 base product names
+# - Categories cycling through IDs 1-6
+# - Random but realistic prices, stock levels, and ratings
+# - Active discounts for products 1-100
+# - Expired discounts for products 401-450
+# - Various stock statuses based on stock vs reorder_level comparison
+
+# Complete generation script for remaining products (use this in your application):
+
+# JavaScript/Node.js script to generate complete bulk insert data:
+/*
+const categories = [
+  {id: 1, name: "Electronics", path: "electronics"},
+  {id: 2, name: "Beauty", path: "beauty"},
+  {id: 3, name: "Car", path: "car"},
+  {id: 4, name: "Furniture", path: "furniture"},
+  {id: 5, name: "Toys", path: "toys"},
+  {id: 6, name: "Watches", path: "watches"}
+];
+
+const productNames = [
+  "Samsung Galaxy S22","iPhone 14 Pro","Dell XPS 13 Laptop","Sony WH-1000XM5 Headphones","Apple iPad Pro",
+  "L'Oreal Face Cream","Maybelline Lipstick","Nivea Body Lotion","Dove Shampoo","MAC Eyeliner",
+  "Michelin Car Tyre","Bosch Car Battery","Castrol Engine Oil","3M Car Polish","Philips Car Headlight",
+  "Ikea Dining Table","Recliner Sofa","Wooden King Bed","Office Ergonomic Chair","Bookshelf Cabinet",
+  "LEGO Star Wars Set","Hot Wheels Car Pack","Barbie Dollhouse","Rubik's Cube","Remote Control Helicopter",
+  "Casio G-Shock","Rolex Submariner","Apple Watch Series 9","Fossil Smartwatch","Seiko Chronograph"
+];
+
+const brands = {
+  1: ["Samsung", "Apple", "Dell", "Sony", "HP", "LG"],
+  2: ["L'Oreal", "Maybelline", "Nivea", "Dove", "MAC", "Revlon"],
+  3: ["Michelin", "Bosch", "Castrol", "3M", "Philips", "Shell"],
+  4: ["IKEA", "Ashley", "Wayfair", "West Elm", "CB2", "Generic"],
+  5: ["LEGO", "Hot Wheels", "Barbie", "Fisher-Price", "Hasbro", "Mattel"],
+  6: ["Casio", "Rolex", "Apple", "Fossil", "Seiko", "Citizen"]
+};
+
+function generateBulkData() {
+  let bulkData = "";
+  
+  for (let i = 1; i <= 500; i++) {
+    const categoryIndex = ((i - 1) % 6);
+    const category = categories[categoryIndex];
+    const productName = productNames[(i - 1) % productNames.length];
+    const price = parseFloat((10 + Math.random() * 990).toFixed(2));
+    const stock = Math.floor(1 + Math.random() * 500);
+    const reorderLevel = Math.max(5, Math.floor(stock * 0.2));
+    const brand = brands[category.id][Math.floor(Math.random() * brands[category.id].length)];
+    
+    // Calculate discount info (active for products 1-100)
+    const hasActiveDiscount = i <= 100;
+    const discountPercentage = hasActiveDiscount ? parseFloat((5 + Math.random() * 15).toFixed(1)) : 0;
+    const discountedPrice = hasActiveDiscount ? parseFloat((price * (1 - discountPercentage / 100)).toFixed(2)) : price;
+    
+    // Stock status logic
+    const isInStock = stock > 0;
+    let stockStatus = "out_of_stock";
+    if (stock > reorderLevel) stockStatus = "in_stock";
+    else if (stock > 0) stockStatus = "low_stock";
+    
+    // Generate tags and search keywords
+    const baseTags = category.name.toLowerCase();
+    const tags = [baseTags, productName.toLowerCase().split(' ')[0], brand.toLowerCase()];
+    const searchKeywords = `${productName} ${brand} ${category.name}`.toLowerCase();
+    
+    const indexLine = `{"index":{"_index":"products","_id":"${i}"}}`;
+    const docLine = JSON.stringify({
+      product_id: i,
+      name: productName,
+      description: `High quality ${productName}`,
+      price: price,
+      discounted_price: discountedPrice,
+      discount_percentage: discountPercentage,
+      has_active_discount: hasActiveDiscount,
+      stock: stock,
+      reorder_level: reorderLevel,
+      is_in_stock: isInStock,
+      stock_status: stockStatus,
+      category: {
+        category_id: category.id,
+        name: category.name,
+        path: category.path
+      },
+      sku: `SKU-${String(i).padStart(6, '0')}`,
+      image_url: `https://example.com/images/product_${i}.jpg`,
+      tags: tags,
+      brand: brand,
+      rating: {
+        average: parseFloat((3.5 + Math.random() * 1.5).toFixed(1)),
+        count: Math.floor(20 + Math.random() * 300)
+      },
+      popularity_score: parseFloat((5 + Math.random() * 5).toFixed(1)),
+      search_keywords: searchKeywords,
+      created_at: "2024-08-01T10:00:00Z",
+      modified_at: "2024-08-01T10:00:00Z",
+      is_deleted: false,
+      is_active: true,
+      sort_order: i,
+      search_boost: parseFloat((0.8 + Math.random() * 0.8).toFixed(1))
+    });
+    
+    bulkData += indexLine + "\n" + docLine + "\n";
+  }
+  
+  return bulkData;
+}
+
+console.log(generateBulkData());
+*/
+
+# Test autocomplete functionality
+GET /products/_search
+{
+  "suggest": {
+    "product_suggest": {
+      "prefix": "sam",
+      "completion": {
+        "field": "name.suggest",
+        "size": 10
+      }
+    }
+  }
+}
+
+# Test search with autocomplete analyzer
+GET /products/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "samsu",
+      "fields": [
+        "name.autocomplete^3",
+        "brand.autocomplete^2",
+        "category.name.autocomplete",
+        "search_keywords"
+      ],
+      "type": "bool_prefix"
+    }
+  }
+}
+
+# Test filtering by category and active discounts
+GET /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "category.category_id": 1
+          }
+        },
+        {
+          "term": {
+            "has_active_discount": true
+          }
+        },
+        {
+          "term": {
+            "is_active": true
+          }
+        },
+        {
+          "term": {
+            "is_deleted": false
+          }
+        }
+      ]
+    }
+  },
+  "sort": [
+    {
+      "popularity_score": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+
+# Search with price range filter
+GET /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "range": {
+            "price": {
+              "gte": 100,
+              "lte": 500
+            }
+          }
+        },
+        {
+          "term": {
+            "is_active": true
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "categories": {
+      "terms": {
+        "field": "category.name.keyword"
+      }
+    },
+    "brands": {
+      "terms": {
+        "field": "brand.keyword"
+      }
+    },
+    "price_ranges": {
+      "range": {
+        "field": "price",
+        "ranges": [
+          {"to": 50},
+          {"from": 50, "to": 100},
+          {"from": 100, "to": 500},
+          {"from": 500}
+        ]
+      }
+    }
+  }
+}
+
+# Advanced search with fuzzy matching and boosting
+GET /products/_search
+{
+  "query": {
+    "function_score": {
+      "query": {
+        "bool": {
+          "should": [
+            {
+              "multi_match": {
+                "query": "samsung phone",
+                "fields": [
+                  "name^4",
+                  "name.autocomplete^3",
+                  "brand^2",
+                  "description",
+                  "search_keywords"
+                ],
+                "type": "best_fields",
+                "fuzziness": "AUTO"
+              }
+            }
+          ],
+          "filter": [
+            {
+              "term": {
+                "is_active": true
+              }
+            },
+            {
+              "term": {
+                "is_deleted": false
+              }
+            }
+          ]
+        }
+      },
+      "functions": [
+        {
+          "field_value_factor": {
+            "field": "popularity_score",
+            "factor": 1.2,
+            "modifier": "sqrt",
+            "missing": 1
+          }
+        },
+        {
+          "field_value_factor": {
+            "field": "search_boost",
+            "factor": 1.0,
+            "missing": 1
+          }
+        }
+      ],
+      "score_mode": "multiply",
+      "boost_mode": "multiply"
+    }
+  },
+  "highlight": {
+    "fields": {
+      "name": {},
+      "description": {}
+    }
+  }
+}

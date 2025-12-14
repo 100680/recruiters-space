@@ -1,0 +1,36 @@
+sequenceDiagram
+    autonumber
+    participant UI as User / BFF
+    participant Orchestrator as Saga Orchestrator
+    participant Order as Order Service
+    participant Pay as Payment Service
+    participant Inv as Inventory Service
+    participant Ship as Shipping Service
+    participant Kafka as Event Bus
+    participant Notif as Notification Service
+    participant Loyalty as Loyalty Service
+    participant Analytics as Analytics Service
+
+    UI->>Orchestrator: CreateOrder(command)
+    Orchestrator->>Order: Create (PENDING)
+    Order-->>Orchestrator: OrderCreated
+
+    Orchestrator->>Pay: Authorize Payment
+    Pay-->>Orchestrator: PaymentAuthorized
+
+    Orchestrator->>Inv: Reserve Inventory
+    Inv-->>Orchestrator: InventoryReserved
+
+    Orchestrator->>Ship: Schedule Shipping
+    Ship-->>Orchestrator: ShippingScheduled
+
+    Orchestrator->>Order: Confirm Order
+    Order-->>Orchestrator: OrderConfirmed
+    Orchestrator-->>UI: Order Success Response
+
+    Orchestrator-->>Kafka: OrderConfirmed Event
+    Ship-->>Kafka: Shipped Event
+
+    Kafka-->>Notif: OrderConfirmed / Shipped
+    Kafka-->>Loyalty: OrderConfirmed
+    Kafka-->>Analytics: OrderConfirmed / Shipped

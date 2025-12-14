@@ -1,0 +1,27 @@
+flowchart TD
+    subgraph Client
+        React["React SPA (Frontend)"]
+    end
+
+    subgraph AWS
+        ALB[AWS ALB / Load Balancer]
+        Kong[Kong API Gateway]
+        BFF[BFF - Java Microservice]
+        Cart[Cart Microservice]
+        Orders[Orders Microservice]
+        Users[Users Microservice]
+        Keycloak[Keycloak Identity Provider]
+    end
+
+    React -->|"OIDC Auth (PKCE)"| Keycloak
+    React -->|API Calls + JWT| ALB --> Kong
+    Kong --> BFF
+    Kong -.-> Cart
+    Kong -.-> Orders
+    Kong -.-> Users
+
+    BFF --> Cart
+    BFF --> Orders
+    BFF --> Users
+    Cart -.-> mTLS -.-> Orders
+    Orders -.-> mTLS -.-> Users

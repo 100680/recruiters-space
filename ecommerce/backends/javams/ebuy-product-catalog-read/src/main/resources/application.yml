@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: ebuy-product-catalog-read
+
+  profiles:
+    active: dev   # default profile
+
+  data:
+    mongodb:
+      uri: mongodb://ebuyUser:SecurePass456@localhost:27017/ebuy_db?authSource=ebuy_db
+
+logging:
+  level:
+    root: INFO

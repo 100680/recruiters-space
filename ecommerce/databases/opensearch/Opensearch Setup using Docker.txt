@@ -1,0 +1,40 @@
+Powershell Commands
+---------------------
+1. Verify by opening PowerShell / CMD:
+
+docker --version
+
+2. Create a Docker Network
+OpenSearch and Dashboards need to talk to each other. Create a custom network:
+
+docker network create opensearch-net
+
+3. Run below command
+docker-compose up -d
+
+Check containers:
+
+docker ps
+
+-----------
+Access:
+-----------
+OpenSearch API → http://localhost:9200
+
+(Login with admin / MyStr0ngP@ssw0rd!)
+
+OpenSearch Dashboards → http://localhost:5601
+
+--------------------
+Removing containers
+--------------------
+docker rm -f opensearch-node1
+docker rm -f opensearch-dashboards
+
+
+
+
+
+
+
+

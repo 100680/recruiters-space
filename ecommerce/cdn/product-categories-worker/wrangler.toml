@@ -1,0 +1,4 @@
+﻿name = "product-categories-worker"
+main = "src/index.js"
+compatibility_date = "2025-08-29"
+account_id = ""

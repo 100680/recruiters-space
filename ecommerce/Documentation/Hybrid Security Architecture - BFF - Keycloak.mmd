@@ -1,0 +1,32 @@
+flowchart TB
+    subgraph Client_Side
+        A[React Frontend]
+    end
+
+    subgraph Server_Side
+        B["BFF (Java)"]
+        C[Users MS]
+        D[Cart MS]
+        E[Orders MS]
+    end
+
+    F[Keycloak IdP]
+    G[(Postgres/Other DBs)]
+
+    %% Frontend to BFF
+    A -->|"OIDC JWT (Bearer Token)"| B
+
+    %% BFF to Microservices
+    B -->|mTLS + JWT| C
+    B -->|mTLS + JWT| D
+    B -->|mTLS + JWT| E
+
+    %% Microservices to Keycloak
+    C -->|"mTLS (Token Introspection)"| F
+    D -->|"mTLS (Token Introspection)"| F
+    E -->|"mTLS (Token Introspection)"| F
+
+    %% Microservices to DB
+    C --> G
+    D --> G
+    E --> G

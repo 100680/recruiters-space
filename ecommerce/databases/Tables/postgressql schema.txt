@@ -1,0 +1,228 @@
+
+I am planning to use below schema for write, update and delete purposes. I am going to use this schema for production environment. as a databse expert, Please update below script accordingly
+
+-- user_db.sql
+-----------------------------
+-- Create database (dev/test only)
+CREATE DATABASE user_db;
+\c user_db;
+
+-- Enable UUID support
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Create schema
+CREATE SCHEMA IF NOT EXISTS user;
+
+-- Users table
+CREATE TABLE IF NOT EXISTS user.users (
+    user_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    address VARCHAR(255),
+    phone VARCHAR(20),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    correlation_id UUID,
+    service_origin VARCHAR(50),
+    row_version BIGINT DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS ix_users_email ON user.users (email);
+
+-- product_db.sql
+--------------------------------------
+
+CREATE DATABASE product_db;
+\c product_db;
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE SCHEMA IF NOT EXISTS product;
+
+-- ================================
+-- Categories Table
+-- ================================
+CREATE TABLE IF NOT EXISTS product.categories (
+    category_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    row_version BIGINT DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS ix_categories_name ON product.categories (name);
+
+-- ================================
+-- Products Table
+-- ================================
+CREATE TABLE IF NOT EXISTS product.products (
+    product_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price NUMERIC(10,2) NOT NULL,
+    stock INT NOT NULL,
+    category_id INT NOT NULL,
+    image_url VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    correlation_id UUID,
+    service_origin VARCHAR(50),
+    row_version BIGINT DEFAULT 1,
+    CONSTRAINT fk_product_category FOREIGN KEY (category_id) REFERENCES product.categories (category_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_products_category_id ON product.products (category_id);
+
+-- ================================
+-- Discount Methods Table
+-- ================================
+CREATE TABLE IF NOT EXISTS product.discount_methods (
+    discount_method_id SERIAL PRIMARY KEY,
+    method_name VARCHAR(50) NOT NULL UNIQUE, -- e.g., 'Percentage', 'FixedAmount', 'BOGO'
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    row_version BIGINT DEFAULT 1
+);
+
+-- ================================
+-- Product Discounts Table
+-- ================================
+CREATE TABLE IF NOT EXISTS product.product_discounts (
+    product_discount_id SERIAL PRIMARY KEY,
+    product_id INT NOT NULL,
+    discount_method_id INT NOT NULL,
+    discount_value NUMERIC(10,2) NOT NULL, -- % for percentage, amount for fixed
+    start_date TIMESTAMPTZ NOT NULL,
+    end_date TIMESTAMPTZ,
+    active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    row_version BIGINT DEFAULT 1,
+    CONSTRAINT fk_product_discount_product FOREIGN KEY (product_id) REFERENCES product.products (product_id),
+    CONSTRAINT fk_product_discount_method FOREIGN KEY (discount_method_id) REFERENCES product.discount_methods (discount_method_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_product_discounts_product_id ON product.product_discounts (product_id);
+CREATE INDEX IF NOT EXISTS ix_product_discounts_active ON product.product_discounts (active);
+
+-- order_db.sql
+----------------------------
+CREATE DATABASE order_db;
+\c order_db;
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE SCHEMA IF NOT EXISTS order;
+
+CREATE TABLE IF NOT EXISTS order.order_status (
+    status_id SERIAL PRIMARY KEY,
+    status_name VARCHAR(50) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    row_version BIGINT DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS order.orders (
+    order_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL, -- Logical reference to user
+    status_id INT NOT NULL, -- Logical reference to order_status
+    order_date TIMESTAMPTZ DEFAULT NOW(),
+    total_amount NUMERIC(10,2) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    correlation_id UUID,
+    service_origin VARCHAR(50),
+    row_version BIGINT DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS ix_orders_user_id ON order.orders (user_id);
+CREATE INDEX IF NOT EXISTS ix_orders_order_date ON order.orders (order_date);
+
+CREATE TABLE IF NOT EXISTS order.order_items (
+    order_item_id SERIAL PRIMARY KEY,
+    order_id INT NOT NULL, -- Logical reference to orders
+    product_id INT NOT NULL, -- Logical reference to product
+    quantity INT NOT NULL CHECK (quantity > 0),
+    price NUMERIC(10,2) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    row_version BIGINT DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS ix_order_items_order_id ON order.order_items (order_id);
+
+
+-- review_db.sql
+------------------------
+CREATE DATABASE review_db;
+\c review_db;
+
+CREATE SCHEMA IF NOT EXISTS review;
+
+CREATE TABLE IF NOT EXISTS review.reviews (
+    review_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL, -- Logical reference to user
+    product_id INT NOT NULL, -- Logical reference to product
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    row_version BIGINT DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS ix_reviews_product_id ON review.reviews (product_id);
+
+
+
+-- payment_db.sql
+---------------------------------
+CREATE DATABASE payment_db;
+\c payment_db;
+
+CREATE SCHEMA IF NOT EXISTS payment;
+
+CREATE TABLE IF NOT EXISTS payment.payment_method_types (
+    payment_method_type_id SERIAL PRIMARY KEY,
+    method_name VARCHAR(50) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    row_version BIGINT DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS payment.payments (
+    payment_id SERIAL PRIMARY KEY,
+    order_id INT NOT NULL, -- Logical reference to order
+    payment_method_type_id INT NOT NULL,
+    payment_date TIMESTAMPTZ,
+    amount NUMERIC(10,2) NOT NULL,
+    payment_status VARCHAR(50) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    row_version BIGINT DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS ix_payments_order_id ON payment.payments (order_id);
+
+
+-- cart_db.sql
+------------------------
+CREATE DATABASE cart_db;
+\c cart_db;
+
+CREATE SCHEMA IF NOT EXISTS cart;
+
+CREATE TABLE IF NOT EXISTS cart.cart_items (
+    cart_item_id SERIAL PRIMARY KEY,
+    user_id INT, -- Logical reference to user
+    session_id VARCHAR(100),
+    product_id INT NOT NULL, -- Logical reference to product
+    quantity INT NOT NULL CHECK (quantity > 0),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    modified_at TIMESTAMPTZ DEFAULT NOW(),
+    row_version BIGINT DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS ix_cart_items_user_id ON cart.cart_items (user_id);

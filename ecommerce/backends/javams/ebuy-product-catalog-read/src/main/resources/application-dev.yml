@@ -1,0 +1,13 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  data:
+    mongodb:
+      uri: mongodb://ebuyUser:SecurePass456@localhost:27017/ebuy_db?authSource=ebuy_db
+
+logging:
+  level:
+    root: DEBUG
+    com.example: DEBUG

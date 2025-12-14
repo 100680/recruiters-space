@@ -1,0 +1,52 @@
+flowchart TD
+    %% Frontend and BFF
+    User[User / Frontend] --> BFF[API Gateway / BFF]
+    BFF --> Orchestrator[Saga Orchestrator]
+
+    %% Core Orchestrated Workflow
+    Orchestrator --> Order[Order Service]
+    Orchestrator --> Payment[Payment Service]
+    Orchestrator --> Inventory[Inventory Service]
+    Orchestrator --> Shipping[Shipping Service]
+
+    %% Databases
+    Order --> DB1[(Order DB)]
+    Payment --> DB2[(Payment DB)]
+    Inventory --> DB3[(Inventory DB)]
+    Shipping --> DB4[(Shipping DB)]
+
+    %% Orchestrator comp logic
+    Orchestrator -.->|Compensation| Payment
+    Orchestrator -.->|Compensation| Inventory
+    Orchestrator -.->|Compensation| Order
+
+    %% Async Event Bus
+    subgraph Kafka[Event Bus / Kafka]
+      OC[OrderConfirmed Event]
+      OF[OrderFailed Event]
+      SHP[Shipped Event]
+    end
+
+    Orchestrator -- publish --> OC
+    Orchestrator -- publish --> OF
+    Shipping -- publish --> SHP
+
+    %% Choreographed Side-Effects
+    OC --> Notification[Notification Service]
+    OC --> Loyalty[Loyalty Service]
+    OC --> Analytics[Analytics Service]
+    SHP --> Notification
+    SHP --> Analytics
+    OF --> Notification
+    OF --> Analytics
+
+    %% Read Models
+    subgraph CQRS
+      Projectors[Projectors / Consumers]
+      ReadDB[(Read DB / Elastic / Redis)]
+    end
+    OC --> Projectors
+    SHP --> Projectors
+    OF --> Projectors
+    Projectors --> ReadDB
+    BFF --> ReadDB

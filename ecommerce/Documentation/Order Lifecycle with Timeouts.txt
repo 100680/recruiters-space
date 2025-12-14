@@ -1,0 +1,30 @@
+stateDiagram-v2
+    [*] --> PENDING: CreateOrder
+
+    %% Pending transitions
+    PENDING --> CONFIRMED: PaymentAuthorized + InventoryReserved
+    PENDING --> CANCELED: PaymentFailed
+    PENDING --> CANCELED: InventoryFailed (after refund)
+    PENDING --> CANCELED: PaymentTimeout (no payment in X mins)
+
+    %% Confirmed transitions
+    CONFIRMED --> SHIPPED: ShippingScheduled
+    CONFIRMED --> CANCELED: UserCancel
+    CONFIRMED --> CANCELED: ShippingTimeout (no shipping in Y hrs)
+
+    %% Shipped transitions
+    SHIPPED --> DELIVERED: DeliveryConfirmed
+    SHIPPED --> DELIVERED: AutoDeliveryConfirm (timeout, e.g. 7 days)
+    SHIPPED --> RETURNED: ReturnInitiated
+
+    %% Returned transitions
+    RETURNED --> REFUNDED: RefundCompleted
+    RETURNED --> REFUNDED: RefundTimeout (auto-refund after SLA)
+
+    %% Canceled transitions
+    CANCELED --> REFUNDED: PaymentRefunded
+    CANCELED --> [*]: NoPayment (order never charged)
+
+    %% Final states
+    DELIVERED --> [*]
+    REFUNDED --> [*]

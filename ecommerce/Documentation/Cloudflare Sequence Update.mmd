@@ -1,0 +1,14 @@
+sequenceDiagram
+    participant User as React Frontend (Millions of Users)
+    participant Worker as Cloudflare Worker
+    participant KV as Cloudflare KV (categories.json)
+    participant Microservice as Product Category Microservice (Spring Boot + Postgres)
+
+    User->>Worker: GET /categories.json
+    Worker->>KV: Fetch categories
+    KV-->>Worker: JSON data
+    Worker-->>User: Return categories.json
+
+    Microservice->>Worker: POST /categories.json (with API Token)
+    Worker->>KV: Update categories
+    Worker-->>Microservice: Success { "success": true }

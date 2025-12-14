@@ -1,0 +1,13 @@
+services:
+  ebuy-product-search:
+    build: .
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - OPENSEARCH_HOST=host.docker.internal
+      - OPENSEARCH_PORT=9200
+      - OPENSEARCH_SCHEME=https
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=MyStr0ngP@ssw0rd!
+

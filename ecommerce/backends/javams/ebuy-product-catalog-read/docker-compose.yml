@@ -1,0 +1,15 @@
+services:
+  # Product Service Application
+  ebuy-product-catalog-read:
+    build: .
+    ports:
+      - "8082:8080"
+    environment:
+      # Spring Profile - change to 'nocache' if you want to disable Redis caching
+      - SPRING_PROFILES_ACTIVE=dev
+
+      # MongoDB connection - using host networking to connect to existing MongoDB
+      - SPRING_DATA_MONGODB_URI=mongodb://ebuyUser:SecurePass456@host.docker.internal:27017/ebuy_db?authSource=ebuy_db&connectTimeoutMS=3000&serverSelectionTimeoutMS=3000
+
+      # JVM options for better container performance with JDK 21 on Debian-based image
+      - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseContainerSupport -XX:+UseG1GC -XX:MaxGCPauseMillis=200

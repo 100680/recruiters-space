@@ -1,0 +1,36 @@
+flowchart LR
+
+    subgraph Command_Service["Product Command Service (Write)"]
+        A[Postgres DB]
+    end
+
+    subgraph Eventing["Event Bus"]
+        B[Kafka / Outbox / Debezium CDC]
+    end
+
+    subgraph Query_Catalog["Product Query Service – Catalog Read"]
+        C[MongoDB]
+        D["Redis (Hot Cache)"]
+    end
+
+    subgraph Query_Search["Product Query Service – Search/Autocomplete"]
+        E[Elasticsearch / OpenSearch / Algolia / Meilisearch]
+    end
+
+    %% Command Flow
+    UserReq[Frontend Request: Create/Update Product] -->|Write| Command_Service
+    Command_Service -->|Emit Events| B
+
+    %% Event Sync Flow
+    B -->|Sync Events| C
+    B -->|Sync Index| E
+
+    %% Query Flows
+    UserSearch[Frontend: Search/Autocomplete] -->|Keyword Search| E
+    E -->|Product IDs| Query_Catalog
+
+    UserPDP[Frontend: PDP/Cart/Checkout] -->|Read| D
+    D -->|Cache Miss| C
+
+    %% Data Sync
+    C -->|Warm Cache| D

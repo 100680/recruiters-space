@@ -1,0 +1,35 @@
+sequenceDiagram
+    autonumber
+    participant UI as UI / BFF
+    participant Orchestrator as Saga Orchestrator
+    participant Order as Order Service
+    participant Pay as Payment Service
+    participant Inv as Inventory Service
+    participant Notif as Notification Service
+
+    UI->>Orchestrator: CreateOrder(command)
+    Orchestrator->>Order: Create(PENDING)
+    Order-->>Orchestrator: OrderCreated
+    Orchestrator->>Pay: AuthorizePayment
+    Pay-->>Orchestrator: PaymentAuthorized
+    Orchestrator->>Inv: ReserveInventory
+    Inv-->>Orchestrator: InventoryReserved
+    Orchestrator->>Order: MarkConfirmed
+    Order-->>Orchestrator: OrderConfirmed
+    Orchestrator->>Notif: SendConfirmation
+    Orchestrator-->>UI: 201 Created (orderId)
+
+    %% Compensation branches
+    alt Payment Authorization Failed
+      Pay-->>Orchestrator: PaymentFailed
+      Orchestrator->>Order: CancelOrder
+      Order-->>Orchestrator: OrderCanceled
+      Orchestrator->>Notif: SendCancellation
+    else Inventory Reservation Failed
+      Inv-->>Orchestrator: InventoryFailed
+      Orchestrator->>Pay: Refund / ReleaseHold
+      Pay-->>Orchestrator: PaymentReleased
+      Orchestrator->>Order: CancelOrder
+      Order-->>Orchestrator: OrderCanceled
+      Orchestrator->>Notif: SendCancellation
+    end

@@ -1,0 +1,981 @@
+# eBuy Product Search Microservice - Setup Guide
+
+## Prerequisites
+- Java 17 or higher
+- IntelliJ IDEA Community Edition
+- Maven 3.6+
+- OpenSearch cluster running
+- Basic knowledge of Spring Boot
+
+## Step 1: Create New Spring Boot Project
+
+### Using IntelliJ IDEA:
+1. Open IntelliJ IDEA Community Edition
+2. Click "New Project" or "File" → "New" → "Project"
+3. Select "Spring Initializr" from the left panel
+4. Configure project settings:
+   - **Project SDK**: Java 17
+   - **Service URL**: https://start.spring.io
+   - **Group**: com.ebuy
+   - **Artifact**: product-search-service
+   - **Type**: Maven Project
+   - **Language**: Java
+   - **Packaging**: Jar
+   - **Java Version**: 17
+   - **Version**: 0.0.1-SNAPSHOT
+   - **Name**: product-search-service
+   - **Description**: eBuy Product Search and Autocomplete Service
+   - **Package name**: com.ebuy.productsearch
+
+5. Click "Next" and select dependencies:
+   - Spring Web
+   - Spring Boot DevTools
+   - Spring Boot Actuator
+   - Validation
+   - Spring Data JPA (for potential future use)
+
+6. Click "Next" → "Finish"
+
+## Step 2: Add OpenSearch Dependencies
+
+Add these dependencies to your `pom.xml`:
+
+```xml
+<dependencies>
+    <!-- Existing Spring Boot dependencies -->
+    
+    <!-- OpenSearch Java Client -->
+    <dependency>
+        <groupId>org.opensearch.client</groupId>
+        <artifactId>opensearch-java</artifactId>
+        <version>2.8.0</version>
+    </dependency>
+    
+    <!-- OpenSearch REST Client -->
+    <dependency>
+        <groupId>org.opensearch.client</groupId>
+        <artifactId>opensearch-rest-client</artifactId>
+        <version>2.8.0</version>
+    </dependency>
+    
+    <!-- Jackson for JSON processing -->
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+    </dependency>
+    
+    <!-- Lombok for reducing boilerplate -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <optional>true</optional>
+    </dependency>
+    
+    <!-- Testing dependencies -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+```
+
+## Step 3: Configure Application Properties
+
+Create `application.yml` in `src/main/resources`:
+
+```yaml
+server:
+  port: 8080
+
+spring:
+  application:
+    name: product-search-service
+  profiles:
+    active: dev
+
+opensearch:
+  host: localhost
+  port: 9200
+  scheme: http
+  username: admin
+  password: admin
+  connect-timeout: 5000
+  socket-timeout: 60000
+  connection-request-timeout: 5000
+
+logging:
+  level:
+    com.ebuy.productsearch: DEBUG
+    org.opensearch: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+```
+
+## Step 4: Create Project Structure
+
+Create the following package structure under `src/main/java/com/ebuy/productsearch`:
+
+```
+com.ebuy.productsearch/
+├── config/
+├── controller/
+├── dto/
+├── entity/
+├── exception/
+├── service/
+└── repository/
+```
+
+## Step 5: Create Entity Classes
+
+### Product Entity (`entity/Product.java`):
+
+```java
+package com.ebuy.productsearch.entity;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Product {
+    @JsonProperty("product_id")
+    private Long productId;
+    
+    private String name;
+    private String description;
+    private Double price;
+    
+    @JsonProperty("discounted_price")
+    private Double discountedPrice;
+    
+    @JsonProperty("discount_percentage")
+    private Float discountPercentage;
+    
+    @JsonProperty("has_active_discount")
+    private Boolean hasActiveDiscount;
+    
+    private Integer stock;
+    
+    @JsonProperty("reorder_level")
+    private Integer reorderLevel;
+    
+    @JsonProperty("is_in_stock")
+    private Boolean isInStock;
+    
+    @JsonProperty("stock_status")
+    private String stockStatus;
+    
+    private Category category;
+    private String sku;
+    
+    @JsonProperty("image_url")
+    private String imageUrl;
+    
+    private List<String> tags;
+    private String brand;
+    private Rating rating;
+    
+    @JsonProperty("popularity_score")
+    private Float popularityScore;
+    
+    @JsonProperty("search_keywords")
+    private String searchKeywords;
+    
+    @JsonProperty("created_at")
+    private LocalDateTime createdAt;
+    
+    @JsonProperty("modified_at")
+    private LocalDateTime modifiedAt;
+    
+    @JsonProperty("is_deleted")
+    private Boolean isDeleted;
+    
+    @JsonProperty("is_active")
+    private Boolean isActive;
+    
+    @JsonProperty("sort_order")
+    private Integer sortOrder;
+    
+    @JsonProperty("search_boost")
+    private Float searchBoost;
+}
+```
+
+### Category Entity (`entity/Category.java`):
+
+```java
+package com.ebuy.productsearch.entity;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Category {
+    @JsonProperty("category_id")
+    private Long categoryId;
+    
+    private String name;
+    private String path;
+}
+```
+
+### Rating Entity (`entity/Rating.java`):
+
+```java
+package com.ebuy.productsearch.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Rating {
+    private Float average;
+    private Integer count;
+}
+```
+
+## Step 6: Create DTOs
+
+### Search Request DTO (`dto/ProductSearchRequest.java`):
+
+```java
+package com.ebuy.productsearch.dto;
+
+import lombok.Data;
+
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import java.util.List;
+
+@Data
+public class ProductSearchRequest {
+    @NotBlank(message = "Search query cannot be empty")
+    private String query;
+    
+    @Min(value = 0, message = "Page number must be non-negative")
+    private int page = 0;
+    
+    @Min(value = 1, message = "Size must be at least 1")
+    private int size = 20;
+    
+    private List<String> categories;
+    private List<String> brands;
+    private Double minPrice;
+    private Double maxPrice;
+    private Boolean inStockOnly = true;
+    private String sortBy = "relevance"; // relevance, price_asc, price_desc, rating, popularity
+}
+```
+
+### Autocomplete Request DTO (`dto/AutocompleteRequest.java`):
+
+```java
+package com.ebuy.productsearch.dto;
+
+import lombok.Data;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Min;
+
+@Data
+public class AutocompleteRequest {
+    @NotBlank(message = "Query cannot be empty")
+    private String query;
+    
+    @Min(value = 1, message = "Size must be at least 1")
+    private int size = 10;
+}
+```
+
+### Search Response DTO (`dto/ProductSearchResponse.java`):
+
+```java
+package com.ebuy.productsearch.dto;
+
+import com.ebuy.productsearch.entity.Product;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProductSearchResponse {
+    private List<Product> products;
+    private long totalHits;
+    private int page;
+    private int size;
+    private int totalPages;
+    private long took; // Query execution time in milliseconds
+}
+```
+
+## Step 7: Create Configuration
+
+### OpenSearch Configuration (`config/OpenSearchConfig.java`):
+
+```java
+package com.ebuy.productsearch.config;
+
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.json.jackson.JacksonJsonpMapper;
+import org.opensearch.client.transport.OpenSearchTransport;
+import org.opensearch.client.transport.rest_client.RestClientTransport;
+import org.opensearch.client.RestClient;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class OpenSearchConfig {
+
+    @Value("${opensearch.host}")
+    private String host;
+
+    @Value("${opensearch.port}")
+    private int port;
+
+    @Value("${opensearch.scheme}")
+    private String scheme;
+
+    @Value("${opensearch.username}")
+    private String username;
+
+    @Value("${opensearch.password}")
+    private String password;
+
+    @Bean
+    public OpenSearchClient openSearchClient() {
+        CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(AuthScope.ANY,
+                new UsernamePasswordCredentials(username, password));
+
+        RestClient restClient = RestClient.builder(
+                new HttpHost(host, port, scheme))
+                .setHttpClientConfigCallback(httpClientBuilder ->
+                        httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider))
+                .build();
+
+        OpenSearchTransport transport = new RestClientTransport(
+                restClient, new JacksonJsonpMapper());
+
+        return new OpenSearchClient(transport);
+    }
+}
+```
+
+## Step 8: Create Repository Layer
+
+### Product Search Repository (`repository/ProductSearchRepository.java`):
+
+```java
+package com.ebuy.productsearch.repository;
+
+import com.ebuy.productsearch.dto.AutocompleteRequest;
+import com.ebuy.productsearch.dto.ProductSearchRequest;
+import com.ebuy.productsearch.dto.ProductSearchResponse;
+import com.ebuy.productsearch.entity.Product;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.SortOrder;
+import org.opensearch.client.opensearch._types.query_dsl.*;
+import org.opensearch.client.opensearch.core.SearchRequest;
+import org.opensearch.client.opensearch.core.SearchResponse;
+import org.opensearch.client.opensearch.core.search.Hit;
+import org.springframework.stereotype.Repository;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Repository
+@RequiredArgsConstructor
+@Slf4j
+public class ProductSearchRepository {
+
+    private final OpenSearchClient openSearchClient;
+    private final ObjectMapper objectMapper;
+    
+    private static final String INDEX_NAME = "products";
+
+    public ProductSearchResponse searchProducts(ProductSearchRequest request) {
+        try {
+            SearchRequest searchRequest = buildSearchRequest(request);
+            SearchResponse<Product> response = openSearchClient.search(searchRequest, Product.class);
+            
+            return mapToProductSearchResponse(response, request);
+        } catch (Exception e) {
+            log.error("Error searching products", e);
+            throw new RuntimeException("Failed to search products", e);
+        }
+    }
+
+    public List<String> autocomplete(AutocompleteRequest request) {
+        try {
+            Query query = MatchQuery.of(m -> m
+                .field("name.autocomplete")
+                .query(request.getQuery())
+                .operator(Operator.And)
+            )._toQuery();
+
+            SearchRequest searchRequest = SearchRequest.of(s -> s
+                .index(INDEX_NAME)
+                .query(query)
+                .source(src -> src.filter(f -> f.includes("name")))
+                .size(request.getSize())
+            );
+
+            SearchResponse<Product> response = openSearchClient.search(searchRequest, Product.class);
+            
+            return response.hits().hits().stream()
+                .map(Hit::source)
+                .map(Product::getName)
+                .distinct()
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting autocomplete suggestions", e);
+            throw new RuntimeException("Failed to get autocomplete suggestions", e);
+        }
+    }
+
+    private SearchRequest buildSearchRequest(ProductSearchRequest request) {
+        List<Query> mustQueries = new ArrayList<>();
+        List<Query> filterQueries = new ArrayList<>();
+
+        // Main search query
+        if (request.getQuery() != null && !request.getQuery().trim().isEmpty()) {
+            Query mainQuery = MultiMatchQuery.of(m -> m
+                .fields("name^3", "description^2", "brand^2", "category.name", "search_keywords")
+                .query(request.getQuery())
+                .operator(Operator.And)
+                .fuzziness("AUTO")
+            )._toQuery();
+            mustQueries.add(mainQuery);
+        }
+
+        // Filters
+        filterQueries.add(TermQuery.of(t -> t.field("is_active").value(true))._toQuery());
+        filterQueries.add(TermQuery.of(t -> t.field("is_deleted").value(false))._toQuery());
+
+        if (request.getInStockOnly()) {
+            filterQueries.add(TermQuery.of(t -> t.field("is_in_stock").value(true))._toQuery());
+        }
+
+        if (request.getCategories() != null && !request.getCategories().isEmpty()) {
+            Query categoryQuery = TermsQuery.of(t -> t
+                .field("category.name.keyword")
+                .terms(ts -> ts.value(request.getCategories().stream()
+                    .map(cat -> FieldValue.of(cat))
+                    .collect(Collectors.toList())))
+            )._toQuery();
+            filterQueries.add(categoryQuery);
+        }
+
+        if (request.getBrands() != null && !request.getBrands().isEmpty()) {
+            Query brandQuery = TermsQuery.of(t -> t
+                .field("brand.keyword")
+                .terms(ts -> ts.value(request.getBrands().stream()
+                    .map(brand -> FieldValue.of(brand))
+                    .collect(Collectors.toList())))
+            )._toQuery();
+            filterQueries.add(brandQuery);
+        }
+
+        if (request.getMinPrice() != null || request.getMaxPrice() != null) {
+            RangeQuery.Builder rangeBuilder = new RangeQuery.Builder().field("price");
+            if (request.getMinPrice() != null) {
+                rangeBuilder.gte(JsonData.of(request.getMinPrice()));
+            }
+            if (request.getMaxPrice() != null) {
+                rangeBuilder.lte(JsonData.of(request.getMaxPrice()));
+            }
+            filterQueries.add(rangeBuilder.build()._toQuery());
+        }
+
+        BoolQuery boolQuery = BoolQuery.of(b -> {
+            BoolQuery.Builder builder = b;
+            if (!mustQueries.isEmpty()) {
+                builder.must(mustQueries);
+            }
+            if (!filterQueries.isEmpty()) {
+                builder.filter(filterQueries);
+            }
+            return builder;
+        });
+
+        return SearchRequest.of(s -> {
+            SearchRequest.Builder builder = s
+                .index(INDEX_NAME)
+                .query(boolQuery._toQuery())
+                .from(request.getPage() * request.getSize())
+                .size(request.getSize());
+
+            // Add sorting
+            switch (request.getSortBy()) {
+                case "price_asc":
+                    builder.sort(sort -> sort.field(f -> f.field("price").order(SortOrder.Asc)));
+                    break;
+                case "price_desc":
+                    builder.sort(sort -> sort.field(f -> f.field("price").order(SortOrder.Desc)));
+                    break;
+                case "rating":
+                    builder.sort(sort -> sort.field(f -> f.field("rating.average").order(SortOrder.Desc)));
+                    break;
+                case "popularity":
+                    builder.sort(sort -> sort.field(f -> f.field("popularity_score").order(SortOrder.Desc)));
+                    break;
+                default: // relevance
+                    builder.sort(sort -> sort.score(sc -> sc.order(SortOrder.Desc)));
+            }
+
+            return builder;
+        });
+    }
+
+    private ProductSearchResponse mapToProductSearchResponse(SearchResponse<Product> response, ProductSearchRequest request) {
+        List<Product> products = response.hits().hits().stream()
+            .map(Hit::source)
+            .collect(Collectors.toList());
+
+        long totalHits = response.hits().total().value();
+        int totalPages = (int) Math.ceil((double) totalHits / request.getSize());
+
+        return new ProductSearchResponse(
+            products,
+            totalHits,
+            request.getPage(),
+            request.getSize(),
+            totalPages,
+            response.took()
+        );
+    }
+}
+```
+
+## Step 9: Create Service Layer
+
+### Product Search Service (`service/ProductSearchService.java`):
+
+```java
+package com.ebuy.productsearch.service;
+
+import com.ebuy.productsearch.dto.AutocompleteRequest;
+import com.ebuy.productsearch.dto.ProductSearchRequest;
+import com.ebuy.productsearch.dto.ProductSearchResponse;
+import com.ebuy.productsearch.repository.ProductSearchRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ProductSearchService {
+
+    private final ProductSearchRepository productSearchRepository;
+
+    public ProductSearchResponse searchProducts(ProductSearchRequest request) {
+        log.info("Searching products with query: {}", request.getQuery());
+        
+        // Add business logic here if needed (caching, analytics, etc.)
+        ProductSearchResponse response = productSearchRepository.searchProducts(request);
+        
+        log.info("Found {} products for query: {}", response.getTotalHits(), request.getQuery());
+        return response;
+    }
+
+    public List<String> getAutocompleteSuggestions(AutocompleteRequest request) {
+        log.info("Getting autocomplete suggestions for: {}", request.getQuery());
+        
+        List<String> suggestions = productSearchRepository.autocomplete(request);
+        
+        log.info("Found {} autocomplete suggestions", suggestions.size());
+        return suggestions;
+    }
+}
+```
+
+## Step 10: Create Controller Layer
+
+### Product Search Controller (`controller/ProductSearchController.java`):
+
+```java
+package com.ebuy.productsearch.controller;
+
+import com.ebuy.productsearch.dto.AutocompleteRequest;
+import com.ebuy.productsearch.dto.ProductSearchRequest;
+import com.ebuy.productsearch.dto.ProductSearchResponse;
+import com.ebuy.productsearch.service.ProductSearchService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/products")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
+public class ProductSearchController {
+
+    private final ProductSearchService productSearchService;
+
+    @PostMapping("/search")
+    public ResponseEntity<ProductSearchResponse> searchProducts(
+            @Valid @RequestBody ProductSearchRequest request) {
+        ProductSearchResponse response = productSearchService.searchProducts(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ProductSearchResponse> searchProductsGet(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) List<String> categories,
+            @RequestParam(required = false) List<String> brands,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(defaultValue = "true") Boolean inStockOnly,
+            @RequestParam(defaultValue = "relevance") String sortBy) {
+        
+        ProductSearchRequest request = new ProductSearchRequest();
+        request.setQuery(query);
+        request.setPage(page);
+        request.setSize(size);
+        request.setCategories(categories);
+        request.setBrands(brands);
+        request.setMinPrice(minPrice);
+        request.setMaxPrice(maxPrice);
+        request.setInStockOnly(inStockOnly);
+        request.setSortBy(sortBy);
+        
+        ProductSearchResponse response = productSearchService.searchProducts(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/autocomplete")
+    public ResponseEntity<List<String>> getAutocompleteSuggestions(
+            @Valid @RequestBody AutocompleteRequest request) {
+        List<String> suggestions = productSearchService.getAutocompleteSuggestions(request);
+        return ResponseEntity.ok(suggestions);
+    }
+
+    @GetMapping("/autocomplete")
+    public ResponseEntity<List<String>> getAutocompleteSuggestionsGet(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        AutocompleteRequest request = new AutocompleteRequest();
+        request.setQuery(query);
+        request.setSize(size);
+        
+        List<String> suggestions = productSearchService.getAutocompleteSuggestions(request);
+        return ResponseEntity.ok(suggestions);
+    }
+}
+```
+
+## Step 11: Create Exception Handling
+
+### Global Exception Handler (`exception/GlobalExceptionHandler.java`):
+
+```java
+package com.ebuy.productsearch.exception;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+@RestControllerAdvice
+@Slf4j
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationExceptions(
+            MethodArgumentNotValidException ex) {
+        Map<String, Object> response = new HashMap<>();
+        Map<String, String> errors = new HashMap<>();
+        
+        BindingResult bindingResult = ex.getBindingResult();
+        bindingResult.getFieldErrors().forEach(error ->
+            errors.put(error.getField(), error.getDefaultMessage()));
+        
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Validation Failed");
+        response.put("errors", errors);
+        
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
+        log.error("Runtime exception occurred", ex);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        response.put("error", "Internal Server Error");
+        response.put("message", ex.getMessage());
+        
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+```
+
+## Step 12: Configure JSON Serialization
+
+### Jackson Configuration (`config/JacksonConfig.java`):
+
+```java
+package com.ebuy.productsearch.config;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+
+@Configuration
+public class JacksonConfig {
+
+    @Bean
+    @Primary
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        return mapper;
+    }
+}
+```
+
+## Step 13: Create Health Check
+
+### Health Check Controller (`controller/HealthController.java`):
+
+```java
+package com.ebuy.productsearch.controller;
+
+import lombok.RequiredArgsConstructor;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/health")
+@RequiredArgsConstructor
+public class HealthController {
+
+    private final OpenSearchClient openSearchClient;
+
+    @GetMapping
+    public ResponseEntity<Map<String, Object>> health() {
+        Map<String, Object> health = new HashMap<>();
+        health.put("status", "UP");
+        health.put("service", "product-search-service");
+        
+        try {
+            // Check OpenSearch connectivity
+            openSearchClient.ping();
+            health.put("opensearch", "UP");
+        } catch (Exception e) {
+            health.put("opensearch", "DOWN");
+            health.put("opensearch_error", e.getMessage());
+        }
+        
+        return ResponseEntity.ok(health);
+    }
+}
+```
+
+## Step 14: Update Main Application Class
+
+### Main Application (`ProductSearchServiceApplication.java`):
+
+```java
+package com.ebuy.productsearch;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ProductSearchServiceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ProductSearchServiceApplication.class, args);
+    }
+}
+```
+
+## Step 15: Create Docker Support (Optional)
+
+### Dockerfile:
+
+```dockerfile
+FROM openjdk:17-jdk-slim
+
+VOLUME /tmp
+
+COPY target/product-search-service-0.0.1-SNAPSHOT.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java","-jar","/app.jar"]
+```
+
+### docker-compose.yml for development:
+
+```yaml
+version: '3.8'
+services:
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch
+      - discovery.seed_hosts=opensearch
+      - cluster.initial_cluster_manager_nodes=opensearch
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "DISABLE_INSTALL_DEMO_CONFIG=true"
+      - "DISABLE_SECURITY_PLUGIN=true"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    ports:
+      - 9200:9200
+      - 9600:9600
+    networks:
+      - opensearch-net
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards
+    ports:
+      - 5601:5601
+    expose:
+      - "5601"
+    environment:
+      - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
+    networks:
+      - opensearch-net
+
+volumes:
+  opensearch-data:
+
+networks:
+  opensearch-net:
+```
+
+## Step 16: Running and Testing
+
+### Build and Run:
+1. Open terminal in IntelliJ IDEA (Alt+F12)
+2. Run: `mvn clean install`
+3. Run: `mvn spring-boot:run`
+
+### Test Endpoints:
+
+**Search Products:**
+```bash
+curl -X POST http://localhost:8080/api/v1/products/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "laptop",
+    "page": 0,
+    "size": 10,
+    "minPrice": 500,
+    "maxPrice": 2000,
+    "sortBy": "price_asc"
+  }'
+```
+
+**Autocomplete:**
+```bash
+curl -X GET "http://localhost:8080/api/v1/products/autocomplete?query=lap&size=5"
+```
+
+**Health Check:**
+```bash
+curl -X GET http://localhost:8080/health
+```
+
+## Step 17: Next Steps
+
+1. **Index Management**: Create a service to populate your OpenSearch index from MongoDB
+2. **Caching**: Add Redis caching for frequently searched queries
+3. **Analytics**: Implement search analytics and query logging
+4. **Rate Limiting**: Add rate limiting for API endpoints
+5. **Security**: Implement authentication and authorization
+6. **Monitoring**: Add detailed metrics and monitoring
+7. **Testing**: Write comprehensive unit and integration tests
+
+## Production Considerations
+
+- Configure connection pooling for OpenSearch client
+- Implement circuit breakers for resilience
+- Add comprehensive logging and monitoring
+- Configure proper index aliases for zero-downtime updates
+- Implement search result ranking algorithms
+- Add search query suggestions and spell correction
+- Configure auto-scaling based on search load
+
+This microservice provides a solid foundation for your eBuy product search functionality with autocomplete capabilities, optimized for high availability and millions of users.

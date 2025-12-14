@@ -1,0 +1,60 @@
+// =============================
+// 1) Switch to admin DB & Create Root User
+// =============================
+use admin
+
+db.createUser({
+  user: "adminUser",
+  pwd: "StrongPassword123", 
+  roles: [
+    { role: "root", db: "admin" }
+  ]
+})
+
+// =============================
+// 2) Switch to ebuy_db & Create App User
+// =============================
+use ebuy_db
+
+db.createUser({
+  user: "ebuyUser",
+  pwd: "SecurePass456", 
+  roles: [
+    { role: "readWrite", db: "ebuy_db" }
+  ]
+})
+
+// =============================
+// 3) Info
+// =============================
+// After running this, restart MongoDB with authentication enabled if not already:
+//   mongod --auth --dbpath "C:\path\to\your\data\db"
+
+// Admin connection:
+//   mongosh "mongodb://adminUser:StrongPassword123@localhost:27017/admin"
+
+// App connection:
+//   mongosh "mongodb://ebuyUser:SecurePass456@localhost:27017/ebuy_db?authSource=ebuy_db"
+
+
+open C:\Program Files\MongoDB\Server\8.0\bin\mongod.cfg
+security:
+  authorization: enabled
+
+Restart Mongo DB Service
+net stop MongoDB
+net start MongoDB
+
+------------------
+LOAD THE VALUES
+------------------
+mongosh "mongodb://adminUser:StrongPassword123@localhost:27017/ebuy_db?authSource=admin" load_products.js
+
+insert_products.js
+
+mongosh "mongodb://adminUser:StrongPassword123@localhost:27017/ebuy_db?authSource=admin"  --eval "load('insert_products.js')"
+
+mongosh "mongodb://adminUser:StrongPassword123@localhost:27017/ebuy_db?authSource=admin" --eval "load('D:\\insert_products.js')"
+
+
+

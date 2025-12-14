@@ -1,0 +1,516 @@
+# Step 1: Delete existing index (if it exists)
+DELETE /products
+
+# Step 2: Create the products index with settings and mappings
+PUT /products
+{
+  "settings": {
+    "number_of_shards": 5,
+    "number_of_replicas": 1,
+    "refresh_interval": "30s",
+    "max_result_window": 50000,
+    "analysis": {
+      "analyzer": {
+        "autocomplete_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "edge_ngram_filter"
+          ]
+        },
+        "autocomplete_search_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase"
+          ]
+        },
+        "keyword_analyzer": {
+          "type": "custom",
+          "tokenizer": "keyword",
+          "filter": [
+            "lowercase",
+            "trim"
+          ]
+        }
+      },
+      "filter": {
+        "edge_ngram_filter": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 20
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "product_id": {
+        "type": "long"
+      },
+      "name": {
+        "type": "text",
+        "analyzer": "standard",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "suggest": {
+            "type": "completion",
+            "analyzer": "simple",
+            "preserve_separators": true,
+            "preserve_position_increments": true,
+            "max_input_length": 50
+          }
+        }
+      },
+      "description": {
+        "type": "text",
+        "analyzer": "standard",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 512
+          }
+        }
+      },
+      "price": {
+        "type": "double"
+      },
+      "discounted_price": {
+        "type": "double"
+      },
+      "discount_percentage": {
+        "type": "float"
+      },
+      "has_active_discount": {
+        "type": "boolean"
+      },
+      "stock": {
+        "type": "integer"
+      },
+      "reorder_level": {
+        "type": "integer"
+      },
+      "is_in_stock": {
+        "type": "boolean"
+      },
+      "stock_status": {
+        "type": "keyword"
+      },
+      "category": {
+        "properties": {
+          "category_id": {
+            "type": "long"
+          },
+          "name": {
+            "type": "text",
+            "analyzer": "standard",
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              },
+              "autocomplete": {
+                "type": "text",
+                "analyzer": "autocomplete_analyzer",
+                "search_analyzer": "autocomplete_search_analyzer"
+              }
+            }
+          },
+          "path": {
+            "type": "keyword"
+          }
+        }
+      },
+      "sku": {
+        "type": "keyword"
+      },
+      "image_url": {
+        "type": "keyword",
+        "index": false
+      },
+      "tags": {
+        "type": "keyword"
+      },
+      "brand": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          },
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          }
+        }
+      },
+      "rating": {
+        "properties": {
+          "average": {
+            "type": "float"
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "popularity_score": {
+        "type": "float"
+      },
+      "search_keywords": {
+        "type": "text",
+        "analyzer": "keyword_analyzer"
+      },
+      "created_at": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "modified_at": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "is_deleted": {
+        "type": "boolean"
+      },
+      "is_active": {
+        "type": "boolean"
+      },
+      "sort_order": {
+        "type": "integer"
+      },
+      "search_boost": {
+        "type": "float"
+      }
+    }
+  }
+}
+
+# Step 3: Verify the index was created successfully
+GET /products
+
+# Step 4: Check the mapping
+GET /products/_mapping
+
+# Step 5: Create index template for automatic index creation (optional)
+PUT /_index_template/products_template
+{
+  "index_patterns": ["products*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 5,
+      "number_of_replicas": 1,
+      "refresh_interval": "30s",
+      "max_result_window": 50000,
+      "analysis": {
+        "analyzer": {
+          "autocomplete_analyzer": {
+            "type": "custom",
+            "tokenizer": "standard",
+            "filter": [
+              "lowercase",
+              "edge_ngram_filter"
+            ]
+          },
+          "autocomplete_search_analyzer": {
+            "type": "custom",
+            "tokenizer": "standard",
+            "filter": [
+              "lowercase"
+            ]
+          },
+          "keyword_analyzer": {
+            "type": "custom",
+            "tokenizer": "keyword",
+            "filter": [
+              "lowercase",
+              "trim"
+            ]
+          }
+        },
+        "filter": {
+          "edge_ngram_filter": {
+            "type": "edge_ngram",
+            "min_gram": 2,
+            "max_gram": 20
+          }
+        }
+      }
+    }
+  },
+  "priority": 100
+}
+
+# Step 6: Test with sample data
+POST /products/_doc/1
+{
+  "product_id": 1,
+  "name": "iPhone 15 Pro Max",
+  "description": "Latest Apple smartphone with advanced camera system",
+  "price": 1199.99,
+  "discounted_price": 1099.99,
+  "discount_percentage": 8.33,
+  "has_active_discount": true,
+  "stock": 50,
+  "reorder_level": 10,
+  "is_in_stock": true,
+  "stock_status": "in_stock",
+  "category": {
+    "category_id": 1,
+    "name": "Electronics",
+    "path": "Electronics/Mobile Phones"
+  },
+  "sku": "IPHONE15PM-256GB",
+  "image_url": "https://example.com/images/iphone15pro.jpg",
+  "tags": ["smartphone", "apple", "premium"],
+  "brand": "Apple",
+  "rating": {
+    "average": 4.8,
+    "count": 1250
+  },
+  "popularity_score": 95.5,
+  "search_keywords": "iphone apple smartphone mobile phone premium",
+  "created_at": "2024-01-15T10:00:00Z",
+  "modified_at": "2024-01-15T10:00:00Z",
+  "is_deleted": false,
+  "is_active": true,
+  "sort_order": 1,
+  "search_boost": 1.5
+}
+
+# Step 7: Test autocomplete functionality
+GET /products/_search
+{
+  "suggest": {
+    "product_suggest": {
+      "prefix": "iph",
+      "completion": {
+        "field": "name.suggest",
+        "size": 10
+      }
+    }
+  }
+}
+
+# Step 8: Test search with autocomplete analyzer
+GET /products/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "iph",
+      "fields": [
+        "name.autocomplete^3",
+        "brand.autocomplete^2",
+        "category.name.autocomplete",
+        "search_keywords"
+      ],
+      "type": "bool_prefix"
+    }
+  }
+}
+
+# Step 9: Create alias for easier management
+POST /_aliases
+{
+  "actions": [
+    {
+      "add": {
+        "index": "products",
+        "alias": "products_search"
+      }
+    }
+  ]
+}
+
+# Step 10: Check cluster health and index stats
+GET /_cluster/health
+GET /products/_stats
+
+# Optional: Update index settings (can be done on live index)
+PUT /products/_settings
+{
+  "refresh_interval": "10s",
+  "number_of_replicas": 2
+}
+
+# Optional: Add more sophisticated search template
+PUT /_scripts/product_autocomplete
+{
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "multi_match": {
+                "query": "{{query_string}}",
+                "fields": [
+                  "name.autocomplete^3",
+                  "brand.autocomplete^2",
+                  "category.name.autocomplete^1.5",
+                  "search_keywords"
+                ],
+                "type": "bool_prefix",
+                "fuzziness": "AUTO"
+              }
+            }
+          ],
+          "filter": [
+            {
+              "term": {
+                "is_deleted": false
+              }
+            },
+            {
+              "term": {
+                "is_active": true
+              }
+            }
+          ]
+        }
+      },
+      "sort": [
+        {
+          "_score": {
+            "order": "desc"
+          }
+        },
+        {
+          "popularity_score": {
+            "order": "desc"
+          }
+        }
+      ],
+      "size": "{{size}}",
+      "from": "{{from}}"
+    }
+  }
+}
+
+# Method 1: Delete the entire index (FASTEST - Recommended for complete cleanup)
+DELETE /products
+
+# Method 2: Delete all documents but keep the index structure
+POST /products/_delete_by_query
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+# Method 3: Delete all documents with confirmation and detailed response
+POST /products/_delete_by_query?conflicts=proceed&refresh=true&wait_for_completion=true
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+# Method 4: Delete only non-deleted products (soft delete approach)
+POST /products/_delete_by_query
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "is_deleted": false
+          }
+        }
+      ]
+    }
+  }
+}
+
+# Method 5: Soft delete all products (mark as deleted instead of removing)
+POST /products/_update_by_query
+{
+  "script": {
+    "source": "ctx._source.is_deleted = true; ctx._source.modified_at = new Date();",
+    "lang": "painless"
+  },
+  "query": {
+    "term": {
+      "is_deleted": false
+    }
+  }
+}
+
+# Verification Commands:
+
+# Check if index exists
+HEAD /products
+
+# Count remaining documents
+GET /products/_count
+
+# Check index stats
+GET /products/_stats
+
+# View a few remaining documents (if any)
+GET /products/_search
+{
+  "size": 5,
+  "query": {
+    "match_all": {}
+  }
+}
+
+# Advanced: Delete with specific conditions (examples)
+
+# Delete products with zero stock
+POST /products/_delete_by_query
+{
+  "query": {
+    "term": {
+      "stock": 0
+    }
+  }
+}
+
+# Delete products from specific category
+POST /products/_delete_by_query
+{
+  "query": {
+    "term": {
+      "category.category_id": 1
+    }
+  }
+}
+
+# Delete products created before a specific date
+POST /products/_delete_by_query
+{
+  "query": {
+    "range": {
+      "created_at": {
+        "lt": "2024-01-01T00:00:00Z"
+      }
+    }
+  }
+}
+
+# Performance and Safety Commands:
+
+# Check cluster health before major operations
+GET /_cluster/health
+
+# Monitor delete operation progress (if using async)
+GET /_tasks?detailed=true&actions=*/delete/byquery
+
+# Force refresh after deletion to make changes immediately visible
+POST /products/_refresh
+
+# Get product by Id
+GET /products/_doc/1
+
+# Delete product by Id with refresh
+DELETE /products/_doc/1?refresh=true

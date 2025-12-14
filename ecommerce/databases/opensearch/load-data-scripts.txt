@@ -1,0 +1,13 @@
+# 1. Create directory and navigate
+mkdir opensearch-data-generator && cd opensearch-data-generator
+
+# 2. Initialize npm and install dependencies  
+npm init -y
+npm install @opensearch-project/opensearch fs-extra uuid
+
+# 3. Create the script file (copy the corrected script into index-products.js)
+
+# 4. Update the OpenSearch connection details in the script
+
+# 5. Run the script
+node generate-opensearch-data.js

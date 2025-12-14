@@ -1,0 +1,8 @@
+graph TD
+    A[Postgres DB] --> B[Product Category Microservice]
+    B -->|POST /categories.json| C[Cloudflare Worker]
+    C --> D[Cloudflare KV Store]
+
+    E["React Frontend (Millions of Users)"] -->|GET categories.json| C
+    C --> E
+    D --> C

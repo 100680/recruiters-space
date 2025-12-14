@@ -1,0 +1,26 @@
+Data Synchronization Strategy
+// MongoDB Change Stream listener (Java/Spring Boot)
+@EventListener
+public void handleProductChange(ProductChangeEvent event) {
+    // Transform MongoDB document to OpenSearch format
+    OpenSearchProduct osProduct = transformToOpenSearchFormat(event.getProduct());
+    
+    // Update OpenSearch asynchronously
+    openSearchService.upsertProduct(osProduct);
+}
+
+Autocomplete Implementation in Java
+// Example autocomplete query builder
+SearchRequest searchRequest = SearchRequest.of(s -> s
+    .index("products")
+    .suggest(su -> su
+        .suggesters("product_suggest", ss -> ss
+            .prefix("sam")
+            .completion(cs -> cs
+                .field("name.suggest")
+                .size(10)
+            )
+        )
+    )
+);
+

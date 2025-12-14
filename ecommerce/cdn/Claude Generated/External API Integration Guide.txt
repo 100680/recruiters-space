@@ -1,0 +1,224 @@
+# External API Integration Guide
+
+## Overview
+
+This setup creates a robust Cloudflare Worker that acts as a proxy and caching layer for your external microservice API. The Worker provides:
+
+- **Caching**: Reduces load on your microservice with configurable TTL
+- **Fallback**: Serves cached or fallback data when your API is down
+- **CRUD Operations**: Full Create, Read, Update, Delete functionality
+- **Error Handling**: Graceful error handling and retries
+- **CORS Support**: Browser-compatible requests
+- **Health Monitoring**: Built-in health checks for both Worker and external API
+
+## Architecture
+
+```
+Browser/Client → Cloudflare Worker → External Microservice API
+                      ↓
+                 KV Storage (Cache)
+```
+
+## Setup Instructions
+
+### 1. Deploy Your External Microservice
+
+First, set up your external microservice using the sample code provided. You can adapt it to any framework:
+
+**For Node.js/Express:**
+```bash
+npm init -y
+npm install express
+# Copy the sample microservice code to app.js
+node app.js
+```
+
+**Environment Variables for your microservice:**
+```bash
+export API_KEY="your-secure-api-key-here"
+export PORT=3000
+```
+
+### 2. Configure Cloudflare Worker
+
+Run the deployment script and provide:
+
+- **Cloudflare API Token**: From Cloudflare Dashboard → My Profile → API Tokens
+- **Account ID**: From your Cloudflare Dashboard
+- **External API URL**: Your microservice base URL (e.g., `https://api.yourservice.com/api`)
+- **API Key**: The same key used by your microservice
+- **Cache TTL**: How long to cache data (300 seconds = 5 minutes)
+
+### 3. Test the Integration
+
+After deployment, test these endpoints:
+
+#### Health Check
+```bash
+curl "https://your-worker.your-domain.workers.dev/health"
+```
+
+#### Get All Categories (with caching)
+```bash
+curl "https://your-worker.your-domain.workers.dev/categories"
+```
+
+#### Create New Category
+```bash
+curl -X POST "https://your-worker.your-domain.workers.dev/categories" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Books","description":"Books and literature"}'
+```
+
+#### Update Category
+```bash
+curl -X PUT "https://your-worker.your-domain.workers.dev/categories/1" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Updated Electronics","description":"Updated description"}'
+```
+
+#### Delete Category
+```bash
+curl -X DELETE "https://your-worker.your-domain.workers.dev/categories/1"
+```
+
+#### Force Cache Sync
+```bash
+curl -X POST "https://your-worker.your-domain.workers.dev/sync"
+```
+
+## API Endpoints
+
+### Worker Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/categories` | Get all categories (cached) |
+| POST | `/categories` | Create new category |
+| GET | `/categories/{id}` | Get specific category |
+| PUT | `/categories/{id}` | Update category |
+| DELETE | `/categories/{id}` | Delete category |
+| POST | `/sync` | Force sync with external API |
+| GET | `/health` | Health check (Worker + external API) |
+
+### External Microservice Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Health check |
+| GET | `/api/categories` | Get all categories |
+| POST | `/api/categories` | Create category |
+| GET | `/api/categories/{id}` | Get specific category |
+| PUT | `/api/categories/{id}` | Update category |
+| DELETE | `/api/categories/{id}` | Delete category |
+| POST | `/api/categories/bulk` | Bulk operations |
+| GET | `/api/categories/stats` | Category statistics |
+
+## Configuration Options
+
+### Environment Variables (in wrangler.toml)
+
+```toml
+[vars]
+EXTERNAL_API_BASE_URL = "https://your-api.com/api"
+CACHE_TTL = "300"  # Cache time in seconds
+ENVIRONMENT = "production"
+```
+
+### Secrets (set via wrangler)
+
+```bash
+wrangler secret put API_KEY
+# Enter your API key when prompted
+```
+
+### KV Storage (for caching)
+
+The script automatically creates a KV namespace for caching. Categories are cached with the key `all_categories`.
+
+## Error Handling
+
+The Worker handles various scenarios:
+
+1. **External API Down**: Serves cached data or fallback categories
+2. **Invalid Requests**: Returns proper HTTP status codes and error messages
+3. **Authentication Failures**: Returns 401 with clear error message
+4. **Network Timeouts**: Implements timeout and fallback logic
+
+## Caching Strategy
+
+- **Cache Key**: `all_categories`
+- **TTL**: Configurable (default 300 seconds)
+- **Cache Invalidation**: Automatic on POST/PUT/DELETE operations
+- **Fallback**: Static categories when all else fails
+
+## Security Features
+
+- **API Key Authentication**: Secure communication with external microservice
+- **CORS Headers**: Controlled cross-origin access
+- **Input Validation**: Request body validation
+- **Rate Limiting**: Built-in Cloudflare protection
+
+## Monitoring and Debugging
+
+### Health Check Response
+```json
+{
+  "success": true,
+  "worker": "healthy",
+  "externalApi": {
+    "status": "healthy",
+    "responseTime": "150ms",
+    "url": "https://your-api.com/api"
+  },
+  "cache": "available",
+  "timestamp": "2025-01-01T12:00:00.000Z"
+}
+```
+
+### Logs
+Check logs in Cloudflare Dashboard → Workers → your-worker → Logs
+
+### Common Issues
+
+1. **Authentication Error (10001)**: Invalid Cloudflare API token
+2. **External API Timeout**: Check your microservice health
+3. **CORS Issues**: Verify CORS headers are properly set
+4. **Cache Not Working**: Ensure KV namespace is properly configured
+
+## Deployment Updates
+
+To update your worker:
+
+1. Modify the code in `src/index.js`
+2. Update configuration in `wrangler.toml`
+3. Run `wrangler deploy`
+
+To update secrets:
+```bash
+wrangler secret put API_KEY
+wrangler secret put EXTERNAL_API_BASE_URL  # If needed as secret
+```
+
+## Best Practices
+
+1. **Use Secrets for API Keys**: Never put API keys in environment variables
+2. **Set Appropriate Cache TTL**: Balance performance vs data freshness
+3. **Monitor Health Endpoint**: Set up alerts on health check failures
+4. **Handle Errors Gracefully**: Always provide fallback data
+5. **Use Structured Logging**: Help with debugging and monitoring
+
+## Scaling Considerations
+
+- **Multiple Regions**: Cloudflare Workers run globally
+- **Rate Limiting**: Consider implementing rate limiting on external API
+- **Load Balancing**: Use multiple microservice instances behind a load balancer
+- **Database**: Replace in-memory storage with persistent database for production
+
+## Next Steps
+
+1. **Add Authentication**: Implement user authentication for your API
+2. **Add Validation**: More robust input validation and sanitization
+3. **Add Monitoring**: Set up alerts and dashboards
+4. **Add Testing**: Automated tests for your endpoints
+5. **Add Documentation**: Generate API documentation (OpenAPI/Swagger)

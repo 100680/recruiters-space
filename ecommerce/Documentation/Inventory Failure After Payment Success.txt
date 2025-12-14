@@ -1,0 +1,35 @@
+sequenceDiagram
+    autonumber
+    participant UI as User / BFF
+    participant Orchestrator as Saga Orchestrator
+    participant Order as Order Service
+    participant Pay as Payment Service
+    participant Inv as Inventory Service
+    participant Kafka as Event Bus
+    participant Notif as Notification Service
+    participant Analytics as Analytics Service
+
+    UI->>Orchestrator: CreateOrder(command)
+    Orchestrator->>Order: Create (PENDING)
+    Order-->>Orchestrator: OrderCreated
+
+    Orchestrator->>Pay: Authorize Payment
+    Pay-->>Orchestrator: PaymentAuthorized
+
+    Orchestrator->>Inv: Reserve Inventory
+    Inv-->>Orchestrator: InventoryFailed
+
+    Note over Orchestrator: Compensation triggered<br/>(because payment succeeded but inventory failed)
+
+    Orchestrator->>Pay: Refund Payment
+    Pay-->>Orchestrator: PaymentRefunded
+
+    Orchestrator->>Order: Cancel Order
+    Order-->>Orchestrator: OrderCanceled
+
+    Orchestrator-->>UI: Inventory Failed (Order Canceled & Payment Refunded)
+
+    Orchestrator-->>Kafka: OrderFailed Event
+
+    Kafka-->>Notif: OrderFailed
+    Kafka-->>Analytics: OrderFailed

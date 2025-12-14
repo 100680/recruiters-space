@@ -1,0 +1,32 @@
+sequenceDiagram
+    participant Client
+    participant BFF
+    participant Kong
+    participant Product
+    participant Price
+    participant Review
+    participant Inventory
+
+    Client->>BFF: GET /product-details/123
+
+    BFF->>Kong: GET /product/123
+    Kong->>Product: GET /product/123
+    Product-->>Kong: Product Info
+    Kong-->>BFF: Product Info
+
+    BFF->>Kong: GET /price/123
+    Kong->>Price: GET /price/123
+    Price-->>Kong: Price Info
+    Kong-->>BFF: Price Info
+
+    BFF->>Kong: GET /review/123
+    Kong->>Review: GET /review/123
+    Review-->>Kong: Review Info
+    Kong-->>BFF: Review Info
+
+    BFF->>Kong: GET /inventory/123
+    Kong->>Inventory: GET /inventory/123
+    Inventory-->>Kong: Stock Info
+    Kong-->>BFF: Stock Info
+
+    BFF-->>Client: Aggregated Product + Price + Review + Stock

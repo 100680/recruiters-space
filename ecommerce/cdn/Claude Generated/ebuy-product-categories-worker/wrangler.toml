@@ -1,0 +1,19 @@
+﻿name = "ebuy-product-categories-worker"
+main = "src/index.js"
+compatibility_date = "2025-08-29"
+account_id = "1aa38c9553c97d08a8742239e7d78308"
+
+# Uncomment the following lines if you want to use KV storage for persistent data
+# [[kv_namespaces]]
+# binding = "CATEGORIES_KV"
+# id = "your-kv-namespace-id"
+# preview_id = "your-preview-kv-namespace-id"
+
+# Uncomment for D1 database (recommended for more complex data)
+# [[d1_databases]]
+# binding = "CATEGORIES_DB"
+# database_name = "categories-db"
+# database_id = "your-database-id"
+
+[vars]
+ENVIRONMENT = "production"

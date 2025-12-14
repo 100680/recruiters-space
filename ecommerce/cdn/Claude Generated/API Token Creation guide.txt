@@ -1,0 +1,141 @@
+# Cloudflare API Token Creation Guide
+
+## Step-by-Step Token Creation
+
+### 1. Navigate to API Token Creation
+- Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+- Click on your profile icon (top right)
+- Select **"My Profile"**
+- Click on **"API Tokens"** tab
+- Click **"Create Token"**
+
+### 2. Choose Custom Token
+- Click **"Custom token"** (not the pre-built templates)
+- Give your token a name: `Workers Deployment Token`
+
+### 3. Set Correct Permissions
+
+#### **Account Permissions:**
+- **Account Settings** : **Read**
+- **Workers Scripts** : **Edit** 
+- **Workers KV Storage** : **Edit**
+- **Workers R2 Storage** : **Edit** *(optional, for future use)*
+
+#### **Zone Permissions:** *(only if you plan to use custom domains)*
+- **Workers Routes** : **Edit**
+- **Zone Settings** : **Read**
+- **Zone** : **Read**
+
+#### **User Permissions:**
+- **User Details** : **Read**
+- **Memberships** : **Read**
+
+### 4. Account Resources
+- **Include** : **All accounts** (or select specific account)
+
+### 5. Zone Resources *(only if you added Zone permissions)*
+- **Include** : **All zones** (or select specific zones)
+
+### 6. Client IP Address Filtering *(optional)*
+- Leave empty for no restrictions, or add your IP for extra security
+
+### 7. TTL *(optional)*
+- Leave empty for no expiration, or set a specific expiration date
+
+## Alternative: Use the Auto-Created Token
+
+When you connect a Worker to a Git repository in the Cloudflare dashboard, it automatically creates a token with these exact permissions:
+
+### Auto-Created Token Permissions:
+- **Account**: Account Settings (read), Workers Scripts (edit), Workers KV Storage (edit), Workers R2 Storage (edit)
+- **Zone**: Workers Routes (edit) for all zones on the account
+- **User**: User Details (read), Memberships (read)
+
+### To get this auto-created token:
+1. Go to **Workers & Pages** in your Cloudflare dashboard
+2. Create a new Worker or select existing one
+3. Go to **Settings > Builds**
+4. Click **"Connect to Git"** (even if you don't plan to use it)
+5. Select **"Create new token"**
+6. Copy the generated token
+
+## Token Verification
+
+After creating your token, verify it works:
+
+```bash
+# Set the token
+export CLOUDFLARE_API_TOKEN="your-token-here"
+
+# Test authentication
+wrangler whoami
+```
+
+Expected output:
+```
+ ⛅️ wrangler 3.x.x
+-------------------
+Getting User settings...
+👋 You are logged in with an API Token, associated with the email your-email@example.com!
+┌─────────────────────────────────┬──────────────────────────────────┐
+│ Account Name                    │ Account ID                       │
+├─────────────────────────────────┼──────────────────────────────────┤
+│ Your Account Name               │ your-account-id-here             │
+└─────────────────────────────────┴──────────────────────────────────┘
+```
+
+## Common Issues and Solutions
+
+### Issue: "Account:Cloudflare Workers:Edit not found"
+**Solution**: The permission is called **"Workers Scripts : Edit"**, not "Cloudflare Workers:Edit"
+
+### Issue: "Unable to authenticate request [code: 10001]"
+**Solutions**:
+1. Double-check token was copied correctly (no extra spaces)
+2. Ensure token has correct permissions listed above
+3. Try regenerating the token if it was copied incorrectly
+
+### Issue: "Zone not found" 
+**Solution**: Either:
+- Remove all Zone permissions if not using custom domains
+- OR ensure your account has access to the zones you specified
+
+### Issue: Token works locally but not in deployment
+**Solution**: Ensure environment variable is set correctly:
+```bash
+# Check if token is set
+echo $CLOUDFLARE_API_TOKEN
+
+# If empty, set it again
+export CLOUDFLARE_API_TOKEN="your-token-here"
+```
+
+## Security Best Practices
+
+1. **Use Minimal Permissions**: Only add permissions you actually need
+2. **Set IP Restrictions**: Limit token usage to your IP if possible
+3. **Set Expiration**: Use TTL for tokens used in CI/CD
+4. **Store Securely**: Never commit tokens to version control
+5. **Rotate Regularly**: Create new tokens periodically and delete old ones
+
+## Token Management
+
+### To update existing token:
+1. Go to **My Profile > API Tokens**
+2. Find your token and click **"Edit"**
+3. Modify permissions as needed
+4. Click **"Continue to summary"** then **"Update token"**
+
+### To delete token:
+1. Go to **My Profile > API Tokens** 
+2. Find your token and click the **trash icon**
+3. Confirm deletion
+
+## Updated PowerShell Script Variable
+
+When running the deployment script, use this token with the corrected permissions. The script will work properly with a token that has:
+- **Workers Scripts : Edit**
+- **Workers KV Storage : Edit** 
+- **Account Settings : Read**
+- **User Details : Read**
+- **Memberships : Read**

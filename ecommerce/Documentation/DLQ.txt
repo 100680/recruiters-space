@@ -1,0 +1,23 @@
+flowchart TD
+    subgraph Orchestrator
+      R1[Call Payment<br/>retry 3x, exp backoff]
+      T1{Timed out?}
+      R2[Call Inventory<br/>retry 3x, exp backoff]
+      T2{Timed out?}
+    end
+
+    R1 --> T1
+    T1 -- Yes --> C1[Compensate: Cancel Order]
+    T1 -- No --> R2
+    R2 --> T2
+    T2 -- Yes --> C2[Compensate: Refund Payment + Cancel]
+    T2 -- No --> OK[Confirm Order]
+
+    %% Messaging side
+    subgraph Messaging
+      Q[Main Topic/Queue]
+      DLQ[Dead-Letter Queue]
+      Rtry[Retry Topic with delay]
+    end
+
+    Q -->|process fail| Rtry -->|max attempts| DLQ

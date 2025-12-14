@@ -1,0 +1,18 @@
+server:
+  port: 8083
+
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://prod-db:5432/cart_db}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+
+logging:
+  level:
+    root: WARN
+    com.ebuy.cart: INFO
+  file:
+    name: /var/log/ebuy-cart-service/ebuy-cart-service.log

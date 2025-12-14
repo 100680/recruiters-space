@@ -1,0 +1,97 @@
+PUT _index_template/products-template
+{
+  "index_patterns": ["products-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 10,
+      "number_of_replicas": 1,
+      "refresh_interval": "5s",
+      "analysis": {
+        "analyzer": {
+          "std_analyzer": { "type": "standard" },
+          "lower_edge_ngram_analyzer": {
+            "tokenizer": "lower_edge_ngram_tokenizer",
+            "filter": ["lowercase"]
+          },
+          "lower_whitespace_analyzer": {
+            "tokenizer": "whitespace",
+            "filter": ["lowercase"]
+          }
+        },
+        "tokenizer": {
+          "lower_edge_ngram_tokenizer": {
+            "type": "edge_ngram",
+            "min_gram": 2,
+            "max_gram": 20,
+            "token_chars": ["letter","digit"]
+          }
+        }
+      }
+    },
+    "mappings": {
+      "dynamic": "strict",
+      "properties": {
+        "product_id": { "type": "long" },
+        "name": {
+          "type": "text",
+          "analyzer": "std_analyzer",
+          "fields": {
+            "keyword": { "type": "keyword", "ignore_above": 256 },
+            "autocomplete": {
+              "type": "text",
+              "analyzer": "lower_edge_ngram_analyzer",
+              "search_analyzer": "lower_whitespace_analyzer"
+            },
+            "suggest": {
+              "type": "completion",
+              "contexts": [
+                { "name": "category", "type": "category", "path": "category_id" }
+              ]
+            }
+          }
+        },
+        "description": { "type": "text", "analyzer": "std_analyzer" },
+        "sku": { "type": "keyword", "ignore_above": 256, "doc_values": true },
+        "image_url": { "type": "keyword", "index": false },
+        "price": { "type": "double", "doc_values": true },
+        "currency": { "type": "keyword", "doc_values": true },
+        "stock": { "type": "integer", "doc_values": true },
+        "reorder_level": { "type": "integer", "doc_values": true },
+        "category_id": { "type": "long", "doc_values": true },
+        "category": {
+          "properties": {
+            "name": { "type": "keyword", "ignore_above": 256, "doc_values": true },
+            "description": { "type": "text", "analyzer": "std_analyzer" }
+          }
+        },
+        "discount": {
+          "type": "nested",
+          "properties": {
+            "discount_method_id": { "type": "long", "doc_values": true },
+            "method_name": { "type": "keyword", "ignore_above": 128 },
+            "description": { "type": "text", "analyzer": "std_analyzer" },
+            "discount_value": { "type": "double", "doc_values": true },
+            "is_percentage": { "type": "boolean", "doc_values": true },
+            "active": { "type": "boolean", "doc_values": true },
+            "start_date": { "type": "date" },
+            "end_date": { "type": "date" }
+          }
+        },
+        "is_deleted": { "type": "boolean", "doc_values": true },
+        "created_at": { "type": "date" },
+        "modified_at": { "type": "date" },
+        "deleted_at": { "type": "date" },
+        "popularity": { "type": "rank_feature" }
+      }
+    },
+    "aliases": {
+      "products-read": {},
+      "products-write": {}
+    }
+  },
+  "priority": 100,
+  "version": 2,
+  "_meta": {
+    "description": "Denormalized products index template (with categories and discount methods) for high-performance ebuy search."
+  }
+}

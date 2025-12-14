@@ -1,0 +1,24 @@
+sequenceDiagram
+    participant U as User (React Frontend)
+    participant CDN as CDN / Edge Cache
+    participant R as Redis Cache
+    participant CS as Category Service
+    participant DB as Category DB (Postgres/Mongo)
+
+    U->>CDN: Request categories.json
+    alt Cache Hit
+        CDN-->>U: Return cached categories
+    else Cache Miss
+        U->>CS: GET /api/categories
+        CS->>R: Check Redis for categories
+        alt Cache Hit
+            R-->>CS: Categories found
+            CS-->>U: Return categories
+        else Cache Miss
+            CS->>DB: Query categories
+            DB-->>CS: Categories data
+            CS->>R: Update Redis
+            CS->>CDN: Push categories.json update
+            CS-->>U: Return categories
+        end
+    end

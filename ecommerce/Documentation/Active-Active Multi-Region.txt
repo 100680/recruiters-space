@@ -1,0 +1,94 @@
+flowchart TD
+  %% Edge
+  User[Millions of Users] --> CDN[CDN + WAF + DDoS]
+  CDN --> GSLB[Global Load Balancer / Anycast DNS]
+
+  %% Regions
+  subgraph R1[Region A]
+    subgraph K1[Kubernetes Cluster A]
+      IG1[Ingress / Nginx] --> GW1[API Gateway / BFF]
+      GW1 --> SM1["Service Mesh (mTLS)"]
+      SM1 --> SvcOrderA[Order Service]
+      SM1 --> SvcPayA[Payment Service]
+      SM1 --> SvcInvA[Inventory Service]
+      SM1 --> SvcProdA[Product Service]
+      SM1 --> SvcShipA[Shipping Service]
+      SM1 --> NotifA[Notification]
+      SM1 --> AuthA[Auth / IAM Adapter]
+      classDef svc fill:#eef,stroke:#99f,stroke-width:1px;
+      class SvcOrderA,SvcPayA,SvcInvA,SvcProdA,SvcShipA,NotifA,AuthA svc;
+    end
+
+    GW1 --> RdsA[(Postgres Primary/Writer)]
+    GW1 --> RedisA[(Redis/Memcached)]
+    SM1 --> KafkaA[(Kafka Cluster A)]
+    SM1 --> ObjA[(Object Storage A)]
+    SM1 --> SearchA[(Elasticsearch/OpenSearch A)]
+
+    %% Observability
+    subgraph ObsA[Observability A]
+      LogsA["Central Log (Loki/ELK)"]
+      MetA["Metrics (Prom/Grafana)"]
+      TraceA["Tracing (Jaeger/Tempo)"]
+    end
+    K1 --> LogsA
+    K1 --> MetA
+    K1 --> TraceA
+  end
+
+  subgraph R2[Region B]
+    subgraph K2[Kubernetes Cluster B]
+      IG2[Ingress / Nginx] --> GW2[API Gateway / BFF]
+      GW2 --> SM2["Service Mesh (mTLS)"]
+      SM2 --> SvcOrderB[Order Service]
+      SM2 --> SvcPayB[Payment Service]
+      SM2 --> SvcInvB[Inventory Service]
+      SM2 --> SvcProdB[Product Service]
+      SM2 --> SvcShipB[Shipping Service]
+      SM2 --> NotifB[Notification]
+      SM2 --> AuthB[Auth / IAM Adapter]
+      class SvcOrderB,SvcPayB,SvcInvB,SvcProdB,SvcShipB,NotifB,AuthB svc;
+    end
+
+    GW2 --> RdsB[(Postgres Standby/Reader)]
+    GW2 --> RedisB[(Redis/Memcached)]
+    SM2 --> KafkaB[(Kafka Cluster B)]
+    SM2 --> ObjB[(Object Storage B)]
+    SM2 --> SearchB[(Elasticsearch/OpenSearch B)]
+
+    subgraph ObsB[Observability B]
+      LogsB[Central Log]
+      MetB[Metrics]
+      TraceB[Tracing]
+    end
+    K2 --> LogsB
+    K2 --> MetB
+    K2 --> TraceB
+  end
+
+  %% Global Routing
+  GSLB --> IG1
+  GSLB --> IG2
+
+  %% Cross-Region Replication / DR Links
+  RdsA <-->|Logical/Streaming Replication| RdsB
+  RedisA <-->|Active-Active / CRDT / Partitioned| RedisB
+  KafkaA <-->|Mirror/Cluster Linking| KafkaB
+  SearchA <-->|Cross-Cluster Replication| SearchB
+  ObjA <-->|Cross-Region Replication| ObjB
+  LogsA --> LogsB
+  MetA --> MetB
+  TraceA --> TraceB
+
+  %% CI/CD + Secrets
+  subgraph Platform[Platform & Security]
+    CI["CI/CD (GitHub Actions / Argo CD / Flux)"]
+    Vault[Secrets Manager / KMS]
+    IaC["Infrastructure as Code (Terraform)"]
+  end
+  CI --> K1
+  CI --> K2
+  Vault --> K1
+  Vault --> K2
+  IaC --> R1
+  IaC --> R2

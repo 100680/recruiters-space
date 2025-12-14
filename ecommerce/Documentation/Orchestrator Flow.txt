@@ -1,0 +1,12 @@
+flowchart LR
+    A[Start] --> B["Create Order (PENDING)"]
+    B --> C[Authorize Payment]
+    C -->|OK| D[Reserve Inventory]
+    C -->|Fail| X[Compensate: Cancel Order]
+    D -->|OK| E[Confirm Order]
+    D -->|Fail| Y[Compensate: Refund Payment → Cancel Order]
+    E --> F[Notify Customer]
+    F --> G[End]
+
+    X --> F
+    Y --> F

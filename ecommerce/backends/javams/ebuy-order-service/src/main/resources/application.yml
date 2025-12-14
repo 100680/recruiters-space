@@ -1,0 +1,402 @@
+# eBuy Order Management Service Configuration
+# High Availability Configuration for millions of users
+
+spring:
+  application:
+    name: ebuy-order-service
+    version: @project.version@
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:development}
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:order_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    
+    # Connection Pool Configuration (HikariCP)
+    hikari:
+      pool-name: EbuyOrderPool
+      minimum-idle: ${DB_POOL_MIN:10}
+      maximum-pool-size: ${DB_POOL_MAX:50}
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      connection-timeout: 20000
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+      connection-test-query: SELECT 1
+      auto-commit: false
+
+  # JPA Configuration
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.SnakeCasePhysicalNamingStrategy
+        implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
+    properties:
+      hibernate:
+        default_schema: order_schema
+        jdbc:
+          batch_size: 50
+          fetch_size: 100
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+        connection:
+          provider_disables_autocommit: true
+        cache:
+          use_second_level_cache: true
+          use_query_cache: true
+          region:
+            factory_class: org.hibernate.cache.jcache.JCacheRegionFactory
+        generate_statistics: false
+        format_sql: false
+        show_sql: false
+    show-sql: false
+
+  # Flyway Database Migration
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    locations: classpath:db/migration
+    schemas: order_schema
+    table: flyway_schema_history
+
+  # Redis Configuration for Caching
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          min-idle: 5
+          max-idle: 20
+          max-active: 50
+          max-wait: 2000ms
+        shutdown-timeout: 100ms
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 2147483647
+      batch-size: 16384
+      linger-ms: 5
+      buffer-memory: 33554432
+      enable-idempotence: true
+      compression-type: lz4
+    consumer:
+      group-id: ebuy-order-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 500
+      fetch-min-size: 1024
+      fetch-max-wait: 500ms
+
+  # Caching Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000 # 1 hour
+      cache-null-values: false
+      key-prefix: "ebuy:order:"
+      use-key-prefix: true
+
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080/auth/realms/ebuy}
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/auth/realms/ebuy/protocol/openid-connect/certs}
+
+  # Session Configuration
+  session:
+    store-type: redis
+    redis:
+      namespace: ebuy:session
+      flush-mode: immediate
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8081}
+  servlet:
+    context-path: /order-service
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
+    min-response-size: 1024
+  http2:
+    enabled: true
+  forward-headers-strategy: framework
+  error:
+    include-stacktrace: never
+    include-message: always
+    include-binding-errors: never
+
+# Management and Monitoring
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8091}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,configprops,beans,mappings,scheduledtasks,caches
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 30s
+        descriptions: true
+    tags:
+      application: ${spring.application.name}
+      version: ${spring.application.version}
+      environment: ${spring.profiles.active}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        resilience4j.circuitbreaker.calls: true
+      sla:
+        http.server.requests: 10ms,50ms,100ms,200ms,500ms,1s,2s
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.ebuy.order: ${LOG_LEVEL:INFO}
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate: WARN
+    org.springframework.cache: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] [%X{userId:-}] %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE:logs/ebuy-order-service.log}
+    max-size: 100MB
+    max-history: 30
+
+# Application-specific Configuration
+ebuy:
+  order:
+    # Performance Configuration
+    performance:
+      max-page-size: 100
+      default-page-size: 20
+      max-bulk-operation-size: 100
+      query-timeout: 30s
+
+    # Business Configuration  
+    business:
+      default-status: PENDING
+      allowed-status-transitions:
+        PENDING: [CONFIRMED, CANCELLED]
+        CONFIRMED: [PROCESSING, CANCELLED]
+        PROCESSING: [SHIPPED, CANCELLED]
+        SHIPPED: [DELIVERED, RETURNED]
+        DELIVERED: [RETURNED, COMPLETED]
+
+    # Integration Configuration
+    integration:
+      user-service:
+        url: ${USER_SERVICE_URL:http://localhost:8080/user-service}
+        timeout: 5s
+        retry:
+          max-attempts: 3
+          delay: 1s
+      product-service:
+        url: ${PRODUCT_SERVICE_URL:http://localhost:8082/product-service}
+        timeout: 5s
+        retry:
+          max-attempts: 3
+          delay: 1s
+      payment-service:
+        url: ${PAYMENT_SERVICE_URL:http://localhost:8083/payment-service}
+        timeout: 10s
+        retry:
+          max-attempts: 2
+          delay: 2s
+
+    # Security Configuration
+    security:
+      cors:
+        allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+        allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+        allowed-headers: "*"
+        allow-credentials: true
+        max-age: 3600
+
+    # Cache Configuration
+    cache:
+      orders:
+        ttl: 1h
+        max-size: 10000
+      order-items:
+        ttl: 30m
+        max-size: 50000
+      order-statuses:
+        ttl: 24h
+        max-size: 100
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      userService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 2s
+      productService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 2s
+
+  retry:
+    instances:
+      userService:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+      productService:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+
+  bulkhead:
+    instances:
+      userService:
+        maxConcurrentCalls: 25
+      productService:
+        maxConcurrentCalls: 25
+
+  thread-pool-bulkhead:
+    instances:
+      paymentService:
+        maxThreadPoolSize: 10
+        coreThreadPoolSize: 5
+        queueCapacity: 20
+        keepAliveDuration: 20ms
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    display-request-duration: true
+    display-operation-id: true
+    default-models-expand-depth: 2
+    default-model-expand-depth: 2
+  show-actuator: false
+
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: development
+
+logging:
+  level:
+    com.ebuy.order: DEBUG
+    org.springframework.cache: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+ebuy:
+  order:
+    cache:
+      orders:
+        ttl: 5m
+      order-items:
+        ttl: 3m
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: production
+
+  jpa:
+    properties:
+      hibernate:
+        generate_statistics: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+logging:
+  level:
+    com.ebuy.order: INFO
+    org.springframework.cache: WARN
+
+server:
+  compression:
+    enabled: true
+  http2:
+    enabled: true
+
+ebuy:
+  order:
+    performance:
+      max-page-size: 50
+
+---
+# Testing Profile  
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+  cache:
+    type: simple
+
+logging:
+  level:
+    com.ebuy.order: DEBUG

@@ -1,0 +1,42 @@
+flowchart TD
+    %% Start
+    A([Start User places order]) -- B[Create Order (PENDING)]
+
+    %% Payment step
+    B -- C{Payment Authorized}
+    C --Yes D[Reserve Inventory]
+    C --No E[Cancel Order]
+    C --Timeout E[Cancel Order (PaymentTimeout)]
+
+    %% Inventory step
+    D -- F{Inventory Reserved}
+    F --Yes G[Schedule Shipping]
+    F --No H[Refund Payment + Cancel Order]
+
+    %% Shipping step
+    G -- I{Shipped in SLA}
+    I --Yes J[Order SHIPPED]
+    I --No H2[Refund + Cancel Order (ShippingTimeout)]
+
+    %% Delivery step
+    J -- K{Delivered}
+    K --Yes L[Order DELIVERED]
+    K --No (timeout) L2[Auto-Confirm Delivery]
+
+    %% Return flow
+    L -- M{Return Requested}
+    M --Yes N[Process Return]
+    M --No O([End Completed])
+
+    %% Refund flow
+    N -- P{Refund Processed}
+    P --Yes Q[Refunded]
+    P --Timeout Q2[Auto Refund (SLA)]
+    Q -- O
+    Q2 -- O
+
+    %% Failure outcomes
+    E -- R([End Order CANCELED])
+    H -- S([End Order CANCELED + REFUNDED])
+    H2 -- S
+    L2 -- O

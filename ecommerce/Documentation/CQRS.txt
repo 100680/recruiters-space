@@ -1,0 +1,5 @@
+flowchart TB
+    Commands["Write APIs (Order, Payment, Inventory)"] -->|events| Kafka[(Event Bus)]
+    Kafka --> Projectors[Projectors / Consumers]
+    Projectors --> ReadDB["(Read Models: Elastic/Redis/Mongo)"]
+    UI["UI / BFF (GET)"] --> ReadDB

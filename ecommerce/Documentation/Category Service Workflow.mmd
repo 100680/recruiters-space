@@ -1,0 +1,33 @@
+flowchart LR
+    %% User Request Flow
+    User[Millions of Users\nReact Frontend] -->|Load Categories| CDN["CDN/Edge Cache\n(categories.json)"]
+    User -->|Fallback/Logged-in| Redis[Redis Cache]
+
+    %% Category Service
+    Redis --> CategoryService["Category Service\n(API /api/categories)"]
+    CategoryService --> CatDB["(Category DB\n(Postgres/Mongo))"]
+
+    %% Product Write Flow
+    ProductWrite["Product Write Service\n(Postgres)"] -->|Publishes Event| Kafka[(Kafka/Event Bus)]
+    Kafka --> CategoryService
+
+    %% Data Flow
+    CategoryService -->|Updates| CDN
+    CategoryService -->|Writes| Redis
+
+    %% Product Catalog & Search
+    ProductCatalog["Product Catalog Service\n(MongoDB)"] --> OpenSearch[OpenSearch Service]
+    OpenSearch --> CategoryService
+
+    %% Labels
+    classDef user fill:#fdf6e3,stroke:#333,stroke-width:2px;
+    classDef cache fill:#f4f1bb,stroke:#333,stroke-width:2px;
+    classDef service fill:#a5d8ff,stroke:#333,stroke-width:2px;
+    classDef db fill:#c3f0ca,stroke:#333,stroke-width:2px;
+    classDef queue fill:#ffd6a5,stroke:#333,stroke-width:2px;
+
+    class User user;
+    class CDN,Redis cache;
+    class CategoryService,ProductWrite,ProductCatalog,OpenSearch service;
+    class CatDB db;
+    class Kafka queue;

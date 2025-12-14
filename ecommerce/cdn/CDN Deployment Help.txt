@@ -1,0 +1,42 @@
+Powershell Scipts
+------------------
+
+npm install -g wrangler
+
+wrangler --version
+
+
+
+-------------------------------
+ebuy-product-categories-cdn-token
+----------------------------------
+
+https://dash.cloudflare.com/profile/api-tokens
+
+Token Value: 
+
+OjR9DAoHCyKZOdsHz_fMs8sWvtP9ea572KEA_7_t
+
+Test token:
+
+curl "https://api.cloudflare.com/client/v4/user/tokens/verify" -H "Authorization: Bearer OjR9DAoHCyKZOdsHz_fMs8sWvtP9ea572KEA_7_t"
+
+------------
+API Token
+ebuy-token
+------------
+06DFT6UUIt79oMo1O7Y-KEEwS5HSmVXfC_ABaFnq
+
+curl "https://api.cloudflare.com/client/v4/accounts/1aa38c9553c97d08a8742239e7d78308/tokens/verify" -H "Authorization: Bearer 06DFT6UUIt79oMo1O7Y-KEEwS5HSmVXfC_ABaFnq"
+
+-----------------------
+claude generated oken - ebuy-product-category-token API token
+---------------------------
+DlZihqVeBEo8EVd5WYBU1FDzxB56vpxoIV_Lp5aL
+
+account Id: 
+
+curl "https://api.cloudflare.com/client/v4/user/tokens/verify" -H "Authorization: Bearer DlZihqVeBEo8EVd5WYBU1FDzxB56vpxoIV_Lp5aL"
+
+
+
