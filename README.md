@@ -112,15 +112,6 @@ This project supports deep discussion around:
 
 ---
 
-## Targeted for Roles At
-
-- **Amazon:** SOA, scalability, ownership, event-driven design
-- **Uber:** High-throughput systems, async workflows, fault isolation
-- **NVIDIA:** Performance-focused backend architecture
-- **FAANG:** Real-world distributed system engineering
-
----
-
 ## Project Status
 
 🚧 **Actively in development**
@@ -131,6 +122,6 @@ This project continues to evolve with additional scalability, observability, and
 
 ## Author
 
-**Balaji K V**  
-Senior Software Engineer / Technical Manager  
+**Balaji Katta Venkataratnam**  
+Senior Software Engineer / Technical Architect
 Specializing in Distributed Systems, Cloud Architecture, and Backend Engineering
