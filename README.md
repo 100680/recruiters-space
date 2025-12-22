@@ -1,6 +1,11 @@
 # eBuy – Distributed High-Availability E-Commerce Platform
 
-## Overview
+Appliction with hardcoded data(Deployed in CDN):
+https://recruiters-space.pages.dev/
+
+Below is the High Availaility application details (Currently in my system only it works):
+
+## Overview 
 
 **eBuy** is a cloud-native, high-availability e-commerce platform built using **microservices architecture**, designed to demonstrate **scalability, reliability, low latency, and fault tolerance**—key requirements for large-scale distributed systems.
 
