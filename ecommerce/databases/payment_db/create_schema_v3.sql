@@ -15,10 +15,10 @@ $$ LANGUAGE plpgsql;
 -- Currency Codes reference table (ISO 4217)
 CREATE TABLE IF NOT EXISTS payment.currency_codes (
   currency_code_id SMALLINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  currency_code CHAR(3) NOT NULL,
+  currency_code VARCHAR(3) NOT NULL,
   currency_name VARCHAR(100) NOT NULL,
   currency_symbol VARCHAR(10),
-  numeric_code CHAR(3),
+  numeric_code VARCHAR(3),
   minor_unit SMALLINT DEFAULT 2,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   display_order SMALLINT NOT NULL DEFAULT 0,

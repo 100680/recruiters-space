@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "payments", schema = "payment")
-@EntityListeners(AuditingEntityListener.class)
+//@EntityListeners(AuditingEntityListener.class)
 public class Payment {
 
     @Id
@@ -56,13 +56,13 @@ public class Payment {
     @Column(name = "failure_reason", length = 500)
     private String failureReason;
 
-    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    @LastModifiedDate
     @Column(name = "modified_at", nullable = false)
     private OffsetDateTime modifiedAt;
+
+
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
@@ -82,12 +82,21 @@ public class Payment {
 
     @PrePersist
     public void prePersist() {
+        OffsetDateTime now = OffsetDateTime.now();
+        this.createdAt = now;
+        this.modifiedAt = now;
+
         if (correlationId == null) {
             correlationId = UUID.randomUUID();
         }
         if (processingFee == null) {
             processingFee = BigDecimal.ZERO;
         }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.modifiedAt = OffsetDateTime.now();
     }
 
     // Constructors

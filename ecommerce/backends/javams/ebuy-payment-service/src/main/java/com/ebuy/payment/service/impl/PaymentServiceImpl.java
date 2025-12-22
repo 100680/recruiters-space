@@ -12,6 +12,7 @@ import com.ebuy.payment.exception.InvalidPaymentStatusException;
 import com.ebuy.payment.exception.PaymentProcessingException;
 import com.ebuy.payment.exception.ResourceNotFoundException;
 import com.ebuy.payment.repository.*;
+import com.ebuy.payment.service.PaymentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -93,18 +94,17 @@ public class PaymentServiceImpl implements PaymentService {
             }
 
             // Create payment entity
-            Payment payment = Payment.builder()
-                    .orderId(request.getOrderId())
-                    .paymentMethodType(paymentMethodType)
-                    .paymentStatus(initialStatus)
-                    .currencyCode(currencyCode)
-                    .amount(request.getAmount())
-                    .processingFee(processingFee)
-                    .transactionReference(request.getTransactionReference())
-                    .serviceOrigin(request.getServiceOrigin())
-                    .correlationId(UUID.randomUUID())
-                    .isDeleted(false)
-                    .build();
+            Payment payment = new Payment();
+            payment.setOrderId(request.getOrderId());
+            payment.setPaymentMethodType(paymentMethodType);
+            payment.setPaymentStatus(initialStatus);
+            payment.setCurrencyCode(currencyCode);
+            payment.setAmount(request.getAmount());
+            payment.setProcessingFee(processingFee);
+            payment.setTransactionReference(request.getTransactionReference());
+            payment.setServiceOrigin(request.getServiceOrigin());
+            payment.setCorrelationId(UUID.randomUUID());
+            payment.setIsDeleted(false);
 
             // Save payment
             Payment savedPayment = paymentRepository.save(payment);
@@ -342,15 +342,14 @@ public class PaymentServiceImpl implements PaymentService {
             String reason,
             String changedBy) {
 
-        PaymentStatusHistory history = PaymentStatusHistory.builder()
-                .payment(payment)
-                .previousStatus(previousStatus)
-                .newStatus(newStatus)
-                .changedAt(OffsetDateTime.now())
-                .changedBy(changedBy)
-                .reason(reason)
-                .correlationId(payment.getCorrelationId())
-                .build();
+        PaymentStatusHistory history = new PaymentStatusHistory();
+        history.setPayment(payment);
+        history.setPreviousStatus(previousStatus);
+        history.setNewStatus(newStatus);
+        history.setChangedAt(OffsetDateTime.now());
+        history.setChangedBy(changedBy);
+        history.setReason(reason);
+        history.setCorrelationId(payment.getCorrelationId());
 
         paymentStatusHistoryRepository.save(history);
     }

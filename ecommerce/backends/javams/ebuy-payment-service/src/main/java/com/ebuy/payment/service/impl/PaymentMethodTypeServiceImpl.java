@@ -8,6 +8,7 @@ import com.ebuy.payment.entity.PaymentMethodType;
 import com.ebuy.payment.exception.PaymentProcessingException;
 import com.ebuy.payment.exception.ResourceNotFoundException;
 import com.ebuy.payment.repository.PaymentMethodTypeRepository;
+import com.ebuy.payment.service.PaymentMethodTypeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
