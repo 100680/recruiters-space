@@ -123,5 +123,5 @@ This project continues to evolve with additional scalability, observability, and
 ## Author
 
 **Balaji Katta Venkataratnam**  
-Senior Software Engineer / Technical Architect
+Senior Software Engineer / Technical Architect 
 Specializing in Distributed Systems, Cloud Architecture, and Backend Engineering

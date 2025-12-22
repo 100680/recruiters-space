@@ -30,7 +30,7 @@ ebuy-token
 curl "https://api.cloudflare.com/client/v4/accounts/1aa38c9553c97d08a8742239e7d78308/tokens/verify" -H "Authorization: Bearer 06DFT6UUIt79oMo1O7Y-KEEwS5HSmVXfC_ABaFnq"
 
 -----------------------
-claude generated oken - ebuy-product-category-token API token
+claude generated token - ebuy-product-category-token API token
 ---------------------------
 DlZihqVeBEo8EVd5WYBU1FDzxB56vpxoIV_Lp5aL
 
