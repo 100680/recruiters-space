@@ -53,14 +53,11 @@ This project focuses on **real-world system design principles**, domain-driven d
 
 All services are **Dockerized** and designed with clear ownership boundaries:
 
-- **User Service**
 - **Product Service**
 - **Product Catalog (Read) Service**
 - **Product Search Service**
 - **Cart Service**
 - **Order Service**
-- **Review Service**
-- **Payment Service**
 
 Each service can be deployed, scaled, and evolved independently.
 
@@ -75,7 +72,7 @@ Each service can be deployed, scaled, and evolved independently.
 
 ---
 
-## In-Progress / Planned Enhancements
+## Future Enhancements
 
 The following components are being integrated to complete a production-grade HA setup:
 
