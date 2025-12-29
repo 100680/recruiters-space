@@ -1,9 +1,9 @@
-# eBuy – Distributed High-Availability E-Commerce Platform
+## eBuy – Distributed High-Availability E-Commerce Platform
 
 Appliction with hardcoded data(Deployed in CDN):
-https://recruiters-space.pages.dev/
+https://ebuystore.pages.dev/
 
-## eBuy Overview 
+### eBuy Overview 
 
 **eBuy** is a cloud-native, high-availability e-commerce platform built using **microservices architecture**, designed to demonstrate **scalability, reliability, low latency, and fault tolerance**—key requirements for large-scale distributed systems.
 
@@ -11,7 +11,7 @@ This project focuses on **real-world system design principles**, domain-driven d
 
 ---
 
-## Key Highlights
+### Key Highlights
 
 - Distributed microservices architecture with independent deployment
 - Designed for high availability and fault isolation
@@ -21,7 +21,7 @@ This project focuses on **real-world system design principles**, domain-driven d
 
 ---
 
-## Architecture Overview
+### Architecture Overview
 
 - **Architecture Style:** Microservices
 - **Communication:** REST (sync), Kafka (async – in progress)
@@ -31,25 +31,25 @@ This project focuses on **real-world system design principles**, domain-driven d
 
 ---
 
-## Technology Stack
+### Technology Stack
 
-### Frontend
+#### Frontend
 - **Framework:** React.js
 - **CDN:** Cloudflare
 
-### Backend
+#### Backend
 - **Language & Framework:** Java (Spring Boot)
 - **Architecture:** Domain-driven microservices
 - **Containerization:** Docker
 
-### Data & Search
+#### Data & Search
 - **PostgreSQL:** Strongly consistent transactional data
 - **MongoDB:** Flexible document-based storage
 - **OpenSearch:** Low-latency, scalable product search
 
 ---
 
-## Implemented Microservices
+### Implemented Microservices
 
 All services are **Dockerized** and designed with clear ownership boundaries:
 
@@ -63,7 +63,7 @@ Each service can be deployed, scaled, and evolved independently.
 
 ---
 
-## Functional Capabilities
+### Functional Capabilities
 
 - Product management
 - Product catalog and search
@@ -72,7 +72,7 @@ Each service can be deployed, scaled, and evolved independently.
 
 ---
 
-## Future Enhancements
+### Future Enhancements
 
 The following components are being integrated to complete a production-grade HA setup:
 
@@ -85,7 +85,7 @@ The following components are being integrated to complete a production-grade HA 
 
 ---
 
-## Engineering Focus Areas
+### Engineering Focus Areas
 
 - Distributed Systems Design
 - High Availability & Fault Tolerance
