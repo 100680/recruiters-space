@@ -9,6 +9,8 @@ https://ebuystore.pages.dev/
 
 This project focuses on **real-world system design principles**, domain-driven design, polyglot persistence, event-driven communication, and horizontal scalability.
 
+![Architecture Diagram](eBuy-Architecture.png)
+
 ---
 
 ### Key Highlights
