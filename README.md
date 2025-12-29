@@ -148,8 +148,9 @@ psql -d <db_name> -f create_schema.sql
 
 MongoDB – Product Catalog (Read Model)
 Initialize MongoDB schema and seed data using JavaScript:
+```bash
 mongosh ebuy_db <Base Dir>\ecommerce\databases\ebuy_db\ebuy_schema.js
-
+```
 ---
 
 ### Future Enhancements
