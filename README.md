@@ -75,7 +75,7 @@ Each service can be deployed, scaled, and evolved independently.
 
 ---
 
-# Ebuy Ecommerce System - Local Deployment Guide
+### Local Deployment Guide
 
 This project is a **microservices-based ecommerce system** consisting of:
 - React frontend
@@ -88,7 +88,7 @@ The following steps describe how to run the entire system **locally**.
 
 ---
 
-## 📦 Prerequisites
+### 📦 Prerequisites
 
 Ensure the following are installed and running:
 - **Node.js (>=18)**
@@ -100,38 +100,39 @@ Ensure the following are installed and running:
 
 ---
 
-## 🖥️ Frontend Deployment
+### 🖥️ Frontend Deployment
 
 ```bash
 cd <Base Dir>\ecommerce\frontends\ebuy-react-app
 npm install
 npm run dev
 
-## Product Service (Write Model)
+Product Service (Write Model)
 cd <Base Dir>\ecommerce\backends\javams\ebuy-product-service
 ./gradlew clean build
 docker compose up --build
 
-## Product Catalog (Read) Service
+Product Catalog (Read) Service
 cd <Base Dir>\ecommerce\backends\javams\ebuy-product-catalog-read
 ./gradlew clean build
 docker compose up --build
 
-## Product Search Service
+Product Search Service
 cd <Base Dir>\ecommerce\backends\javams\ebuy-product-search
 ./gradlew clean build
 docker compose up --build
 
-## Cart Service
+Cart Service
 cd <Base Dir>\ecommerce\backends\javams\ebuy-cart-service
 ./gradlew clean build
 docker compose up --build
 
-## Order Service
+Order Service
 cd <Base Dir>\ecommerce\backends\javams\ebuy-order-service
 ./gradlew clean build
 docker compose up --build
 
+```
 ### Database Initialization
 PostgreSQL Databases
 
@@ -149,6 +150,7 @@ MongoDB – Product Catalog (Read Model)
 Initialize MongoDB schema and seed data using JavaScript:
 mongosh ebuy_db <Base Dir>\ecommerce\databases\ebuy_db\ebuy_schema.js
 
+---
 
 ### Future Enhancements
 
