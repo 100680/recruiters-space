@@ -4,6 +4,7 @@ import React from 'react';
 import { useCart } from '../CartContext';
 import Header from '../components/Header';
 import './AmazonTheme.css';
+import './Products.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 
@@ -56,41 +57,32 @@ const Products = () => {
     <>
       <Header />
       <div>
-        <section className="amazon-section">
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '2rem',
-            justifyItems: 'center',
-          }}>
+        <section className="amazon-section products-section">
+          <div className="products-grid">
             {products.map(product => (
-              <div key={product.id || product.productId} style={{ width: '180px', border: '1px solid #eee', borderRadius: '8px', padding: '1rem', background: '#fafafa' }}>
+              <div key={product.id || product.productId} className="product-card">
                 <img
                   src={product.image}
                   alt={product.name}
-                  style={{ width: '100%', borderRadius: '4px', cursor: 'pointer' }}
                   onClick={() => navigate(`/product/${product.id || product.productId}`, { state: { product } })}
                 />
-                <h3 style={{ fontSize: '1rem', margin: '0.5rem 0' }}>{product.name}</h3>
-                <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <h3 className="product-title">{product.name}</h3>
+                <div className="product-rating">
                   {[...Array(5)].map((_, i) => (
                     <span
                       key={i}
                       style={{
                         color: i < Math.round(product.rating) ? '#FFA41C' : '#ddd',
                         fontWeight: 'bold',
-                        fontSize: '1.2rem',
+                        fontSize: '1.05rem',
                       }}
                     >★</span>
                   ))}
-                  <span style={{ fontWeight: 'bold', color: '#232f3e', fontSize: '1.1rem', marginLeft: '0.5rem' }}>{product.rating} / 5</span>
+                  <span style={{ fontWeight: 'bold', color: '#232f3e', fontSize: '1.05rem', marginLeft: '0.4rem' }}>{product.rating} / 5</span>
                 </div>
-                <p style={{ color: '#B12704', fontWeight: 'bold' }}>₹{product.price ? product.price.toLocaleString() : ''}</p>
+                <p className="product-price">₹{product.price ? product.price.toLocaleString() : ''}</p>
 
-                <button
-                  style={{ background: '#43d4c0', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}
-                  onClick={() => handleAddToCart(product)}
-                >
+                <button className="product-add-btn" onClick={() => handleAddToCart(product)}>
                   Add to Cart
                 </button>
               </div>
